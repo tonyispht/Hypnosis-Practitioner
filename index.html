@@ -26,6 +26,7 @@ h2{font:500 1.35rem/1.2 Newsreader,Georgia,serif;margin:0 0 4px}
 .goal{color:var(--mute);font-size:.9rem;margin:0 0 16px}
 .script{font:400 1.28rem/1.75 Newsreader,Georgia,serif;max-width:56ch;border-left:3px solid var(--line);padding:2px 0 2px 18px;margin:0 0 20px}
 .script p{margin:0 0 .9em}
+.script.empty-scr{font:400 .95rem/1.55 "Instrument Sans",system-ui,sans-serif;color:var(--mute);padding:10px 0 10px 16px}
 .cue{display:inline-block;font:500 .72rem/1 "Instrument Sans",sans-serif;color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:3px 9px;margin:0 3px;vertical-align:middle}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 button{font:inherit;cursor:pointer}
@@ -33,6 +34,7 @@ button{font:inherit;cursor:pointer}
 .btn:hover{border-color:var(--accent)}
 .btn.main{background:var(--accent);border-color:var(--accent);color:var(--onaccent)}
 .btn.rec{background:var(--rec);border-color:var(--rec);color:#fff}
+.btn.sm{padding:6px 11px;font-size:.85rem}
 .btn:disabled{opacity:.45;cursor:default}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .meter{height:6px;background:var(--line);border-radius:3px;overflow:hidden;flex:1 1 120px;min-width:100px}
@@ -72,18 +74,72 @@ details.card>summary{cursor:pointer;list-style:none}details.card>summary::-webki
 .info .stat{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .info #st{flex:1 1 0}.info #hint{flex:0 1 auto}
 .info #cd{flex:0 0 auto;min-width:6.5em;text-align:right;white-space:nowrap}
+.cbox{border:1px dashed var(--line);border-radius:8px;padding:14px;margin-top:12px;background:var(--bg)}
+.cbox h3{font:500 1.05rem/1.2 Newsreader,Georgia,serif;margin:0 0 6px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
+.cpartbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;margin-bottom:14px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.cpartbar input[type=text]{flex:1 1 180px;background:var(--panel)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top norec"><div><h1>Practitioner Session Studio</h1>
-  <p class="lede">Choose a session, personalize it, then work through its parts. Read each part aloud (the teleprompter helps), record it in your own voice, then combine everything into one polished MP3 for your client.</p></div>
+  <p class="lede">Choose a session—or build a completely custom one from your own script or audio files—then record or import each part and combine everything into one polished MP3.</p></div>
   <div class="ringbox"><svg viewBox="0 0 44 44" width="56" height="56" role="img" aria-label="Parts recorded"><circle r="18" cx="22" cy="22" fill="none" stroke="var(--line)" stroke-width="4"/><circle id="rp" r="18" cx="22" cy="22" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1" transform="rotate(-90 22 22)"/><text id="rt" x="22" y="25.5" text-anchor="middle" font-size="10" fill="currentColor">0/0</text></svg><button class="btn" id="theme">Theme</button></div></div>
 
   <details class="card norec" id="dp" open><summary><h2>Personalize</h2></summary><p class="goal">Fills {client name}, {goal} and {anchor word} anywhere they appear in a script. Leave blank to use neutral wording.</p>
   <div class="grid"><label class="p">Client name <input type="text" data-t="client"></label><label class="p">Goal <input type="text" data-t="goal" placeholder="e.g. a calm, clear mind"></label><label class="p">Anchor word <input type="text" data-t="anchor" placeholder="e.g. peace"></label></div></details>
 
-  <div class="row norec" style="margin-bottom:12px"><label class="p">Session <select id="sess"></select></label></div>
+  <div class="row norec" style="margin-bottom:12px">
+    <label class="p">Session <select id="sess"></select></label>
+    <button class="btn sm" id="goCustom" type="button">Custom session</button>
+  </div>
+
+  <div class="card norec" id="customPanel" hidden>
+    <h2>Custom session setup</h2>
+    <p class="goal">Record your own uploaded or pasted script, record freely without a script, or import existing audio files to combine.</p>
+    <div class="row" style="margin-bottom:10px">
+      <label class="p" style="flex:1 1 240px">Session title <input type="text" id="cstTitle" placeholder="Custom session"></label>
+      <button class="btn sm" id="cstAddScript" type="button">+ Add script part</button>
+      <button class="btn sm" id="cstAddAudioOnly" type="button">+ Add audio-only part</button>
+    </div>
+    <div class="cgrid">
+      <div class="cbox">
+        <h3>1. From your own script</h3>
+        <p class="goal" style="margin-bottom:10px">Upload a <code>.txt</code> or <code>.md</code> file, or paste your script below. Supports <code>[pause]</code> and personalization tokens.</p>
+        <div class="row" style="margin-bottom:8px">
+          <label class="btn sm" style="display:inline-block">Upload script (.txt / .md)<input type="file" id="scrFile" accept=".txt,.md,.text,text/plain" class="sr-only"></label>
+          <button class="btn sm" id="togglePaste" type="button">Paste script</button>
+        </div>
+        <label class="p" style="margin-bottom:8px">Split script into parts
+          <select id="splitMode">
+            <option value="headings">By headings / sections</option>
+            <option value="paragraphs">By paragraphs</option>
+            <option value="single">Keep as one part</option>
+          </select>
+        </label>
+        <div id="pasteWrap" hidden style="margin-top:8px">
+          <textarea id="pasteBox" rows="6" placeholder="Paste your script here. Use # Part Title on its own line to split into named parts, or separate paragraphs with a blank line..."></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn main sm" id="applyPaste" type="button">Load script into parts</button>
+            <label class="p"><input type="checkbox" id="appendMode"> Append to existing parts</label>
+          </div>
+        </div>
+      </div>
+      <div class="cbox">
+        <h3>2. Audio files to combine</h3>
+        <p class="goal" style="margin-bottom:10px">Select one or more audio files (MP3, WAV, M4A, OGG) to add as parts, or add blank audio parts to record directly.</p>
+        <div class="row">
+          <label class="btn main sm" style="display:inline-block">Upload audio files<input type="file" id="batchAudio" accept="audio/*" multiple class="sr-only"></label>
+          <button class="btn sm" id="clearCustom" type="button">Reset custom session</button>
+        </div>
+        <p class="tip" style="margin-top:10px">Each uploaded file becomes a reorderable part with adjustable silence, leveling, voice polish, and background bed.</p>
+      </div>
+    </div>
+    <div class="stat" id="cstStat"></div>
+  </div>
+
   <div class="dots norec" id="dots" role="tablist" aria-label="Session parts"></div>
   <div class="card" id="step"></div>
 
@@ -304,7 +360,8 @@ With each breath out, your mind becomes quieter… slower… and more still. [pa
 If you wake at all, you’ll simply drift back to sleep, calm and comfortable. [pause] And in the morning, you’ll wake naturally, refreshed and restored.`},
 {t:"Sinking into sleep",g:"The final part: fade slowly, with no count-up.",p:0,x:`Imagine yourself on a soft cloud, floating gently, warm and safe. [pause] With every breath, you sink a little deeper into comfort.
 
-Heavier… softer… quieter… [pause] And now, you can let yourself drift off to sleep. Goodnight.`}];
+Heavier… softer… quieter… [pause] And now, you can let yourself drift off to sleep. Goodnight.`}
+];
 const CNF=[
 {t:"Welcome and intention",g:"Open the mind to a stronger sense of self.",p:2,x:`Welcome. You’re here to strengthen your belief in yourself, and your mind is ready to listen.
 
@@ -337,16 +394,29 @@ Your mind and body remember this, and know exactly what to do.`},
 
 Whenever you need to concentrate, press your fingers together and take a slow breath, and your mind settles and sharpens. [pause] You are focused, prepared, and ready.`},
 BACK("feeling alert, clear, and ready to perform.")];
-const SESS={anx:{n:"Anxiety reduction",f:"anxiety-relief-session",a:ANX},smk:{n:"Stop smoking",f:"smoke-free-session",a:SMK},wgt:{n:"Weight management",f:"healthy-weight-session",a:WGT},add:{n:"Addiction recovery (any habit)",f:"addiction-recovery-session",a:ADD},enr:{n:"Energy and motivation",f:"energy-motivation-session",a:ENR},rlx:{n:"Relaxation and calm",f:"relaxation-calm-session",a:RLX},slp:{n:"Better sleep",f:"sleep-session",a:SLP},cnf:{n:"Confidence and self-esteem",f:"confidence-session",a:CNF},foc:{n:"Focus and performance",f:"focus-performance-session",a:FOC}};
+const DEFAULT_CST=()=>[{t:"Custom part 1",g:"Upload or paste your script above, record freely, or upload an audio file.",p:3,x:""}];
+const SESS={
+  anx:{n:"Anxiety reduction",f:"anxiety-relief-session",a:ANX},
+  smk:{n:"Stop smoking",f:"smoke-free-session",a:SMK},
+  wgt:{n:"Weight management",f:"healthy-weight-session",a:WGT},
+  add:{n:"Addiction recovery (any habit)",f:"addiction-recovery-session",a:ADD},
+  enr:{n:"Energy and motivation",f:"energy-motivation-session",a:ENR},
+  rlx:{n:"Relaxation and calm",f:"relaxation-calm-session",a:RLX},
+  slp:{n:"Better sleep",f:"sleep-session",a:SLP},
+  cnf:{n:"Confidence and self-esteem",f:"confidence-session",a:CNF},
+  foc:{n:"Focus and performance",f:"focus-performance-session",a:FOC},
+  cst:{n:"Custom session (your script or audio)",f:"custom-session",a:DEFAULT_CST()}
+};
 const INTRO={t:"Your intro",g:"Optional spoken welcome with your name. Recorded once and reused in every session.",p:3,opt:1,sh:"intro",x:`Hello, and welcome. This session was recorded for you by {practitioner}.\n\nFind a quiet, safe place where you won’t be disturbed, and never listen while driving or operating machinery.`};
 const OUTRO={t:"Your outro",g:"Optional spoken sign-off. Recorded once and reused in every session.",p:0,opt:1,sh:"outro",x:`Thank you for listening. Repeat this session as often as your practitioner recommends. [pause] This recording was made for you by {practitioner}.`};
 for(const k in SESS){const a=SESS[k].a;if(/^Welcome\./.test(a[0].x))a[0]={...a[0],x:a[0].x.replace(/^Welcome\./,"Welcome, {client name}.")};SESS[k].a=[INTRO,...a,OUTRO]}
-let key="anx",S=SESS.anx.a,cur=0,ctx,src,curBtn,curLabel,mr,stream,raf,tm,mixBuf=null,mp3Blob=null,recOn=false,starting=false,cancelReq=false,seq=false,editing=false,pp=0,logoImg=null,saveT;
+let key="anx",S=SESS.anx.a,cur=0,ctx,src,curBtn,curLabel,mr,stream,raf,tm,mixBuf=null,mp3Blob=null,recOn=false,starting=false,cancelReq=false,seq=false,editing=false,pp=0,logoImg=null,saveT,customTitle="";
 const R={},P={},ov={},tok={client:"",goal:"",anchor:"",prac:""},O={gap:4,bed:"none",bv:.35,duck:true,polc:false,norm:true,art:true,spd:30,cl:4};
 for(const k in SESS){R[k]=SESS[k].a.map(()=>null);P[k]=SESS[k].a.map(s=>s.p)}
 let recs=R.anx,pauses=P.anx;
 const $=id=>document.getElementById(id),AC=()=>ctx||(ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:44100})),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const dur=b=>b?b.duration.toFixed(1)+" sec":"",esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])),words=t=>(t.match(/\S+/g)||[]).length,fmt=s=>s<90?Math.round(s)+" sec":Math.round(s/60)+" min";
+const slugify=t=>(t||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"custom-session";
 const pidk=(k,i)=>SESS[k].a[i].sh?"sh:"+SESS[k].a[i].sh:k+":"+i,pid=i=>pidk(key,i),getX=i=>ov[pid(i)]??S[i].x;
 function fill(t){t=tok.client?t.replace(/\{client name\}/g,tok.client):t.replace(/,? ?\{client name\}/g,"");return t.replace(/\{goal\}/g,tok.goal||"what matters most to you").replace(/\{anchor word\}/g,tok.anchor||"calm").replace(/\{practitioner\}/g,tok.prac||"your practitioner")}
 const mono=b=>{const n=b.numberOfChannels;if(n==1)return b;const o=AC().createBuffer(1,b.length,b.sampleRate),d=o.getChannelData(0);for(let c=0;c<n;c++){const x=b.getChannelData(c);for(let k=0;k<b.length;k++)d[k]+=x[k]/n}return o};
@@ -355,9 +425,139 @@ function splice(base,at,nb){const sr=base.sampleRate,n=Math.min(base.length,Math
 /* storage */
 const idb=new Promise(r=>{try{const q=indexedDB.open("pss",1);q.onupgradeneeded=()=>q.result.createObjectStore("kv");q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
 const kv=async(m,k,v)=>{const d=await idb;if(!d)return;return new Promise(r=>{try{const s=d.transaction("kv","readwrite").objectStore("kv"),q=m=="get"?s.get(k):m=="set"?s.put(v,k):s.delete(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()}catch(e){r()}})};
-const saveMeta=()=>{clearTimeout(saveT);saveT=setTimeout(()=>kv("set","meta",{P,ov,tok,O}),400)};
+const getCustomMid=()=>SESS.cst.a.slice(1,-1).map((s,idx)=>({t:s.t,g:s.g,p:P.cst[idx+1]??s.p,x:ov["cst:"+(idx+1)]??s.x}));
+const saveMeta=()=>{clearTimeout(saveT);saveT=setTimeout(()=>kv("set","meta",{P,ov,tok,O,customParts:getCustomMid(),customTitle}),400)};
 function setRec(i,b){const s=S[i];if(s.sh){for(const k in SESS)R[k][s.sh=="intro"?0:SESS[k].a.length-1]=b}else recs[i]=b;const id="r:"+pid(i);b?kv("set",id,pack(b)):kv("del",id)}
 function inval(){mixBuf=mp3Blob=null;for(const i of["mixPlay","dl","pk"])$(i).disabled=true;$("done").hidden=true}
+/* custom session helpers */
+function updateCustomMetaTitle(val){
+  customTitle=val.trim();
+  SESS.cst.n=customTitle||"Custom session (your script or audio)";
+  SESS.cst.f=slugify(customTitle||"custom-session");
+  const opt=$("sess").querySelector('option[value="cst"]');
+  if(opt)opt.textContent=SESS.cst.n;
+  inval();saveMeta();
+}
+function isPristineCustom(){
+  const mid=SESS.cst.a.slice(1,-1);
+  return mid.length===1&&!R.cst[1]&&!(ov["cst:1"]??mid[0].x).trim()&&mid[0].t==="Custom part 1";
+}
+async function rebuildCustomParts(midList,recList,pauseList,ovList){
+  const oldLen=SESS.cst.a.length;
+  for(let i=1;i<oldLen-1;i++){delete ov["cst:"+i];await kv("del","r:cst:"+i)}
+  const introRec=R.cst[0],outroRec=R.cst[oldLen-1],introP=P.cst[0],outroP=P.cst[oldLen-1];
+  SESS.cst.a=[INTRO,...midList,OUTRO];
+  R.cst=[introRec,...recList,outroRec];
+  P.cst=[introP,...pauseList,outroP];
+  for(let i=0;i<midList.length;i++){
+    if(ovList&&ovList[i]!==undefined&&ovList[i]!==midList[i].x)ov["cst:"+(i+1)]=ovList[i];
+    if(recList[i])await kv("set","r:cst:"+(i+1),pack(recList[i]));
+  }
+  if(key==="cst"){S=SESS.cst.a;recs=R.cst;pauses=P.cst}
+  inval();saveMeta();
+}
+function parseCustomScript(raw,mode){
+  const txt=raw.replace(/\r\n/g,"\n").trim();
+  if(!txt)return[];
+  if(mode==="single")return[{t:"Custom script",g:"Read aloud with the teleprompter, edit, or upload audio.",p:O.gap||3,x:txt}];
+  if(mode==="paragraphs"){
+    const ps=txt.split(/\n{2,}/).map(s=>s.trim()).filter(Boolean);
+    return ps.map((p,i)=>({t:"Part "+(i+1),g:"Custom script part.",p:O.gap||3,x:p}));
+  }
+  const lines=txt.split("\n"),parts=[];
+  let curT="",buf=[];
+  const flush=()=>{const body=buf.join("\n").trim();if(body||curT)parts.push({t:curT||("Part "+(parts.length+1)),g:"Custom script part.",p:O.gap||3,x:body});curT="";buf=[]};
+  const headRe=/^(?:#{1,3}\s+|(?:part|section|chapter)\s*\d+\s*[:.\-–—]\s*)(.+)$/i;
+  for(const line of lines){
+    const tr=line.trim();
+    if(/^---+$/.test(tr)){flush();continue}
+    const m=tr.match(headRe);
+    if(m){flush();curT=m[1].trim()}
+    else buf.push(line);
+  }
+  flush();
+  if(parts.length<=1){
+    const ps=txt.split(/\n{2,}/).map(s=>s.trim()).filter(Boolean);
+    if(ps.length>1)return ps.map((p,i)=>({t:"Part "+(i+1),g:"Custom script part.",p:O.gap||3,x:p}));
+  }
+  return parts;
+}
+async function loadCustomScriptText(raw,append){
+  const parts=parseCustomScript(raw,$("splitMode").value);
+  const st=$("cstStat");
+  if(!parts.length){st.textContent="No script text found to import.";st.className="stat err";return}
+  const useAppend=append&&!isPristineCustom();
+  const baseMid=useAppend?SESS.cst.a.slice(1,-1):[];
+  const baseRecs=useAppend?R.cst.slice(1,-1):[];
+  const basePauses=useAppend?P.cst.slice(1,-1):[];
+  const baseOvs=useAppend?baseMid.map((_,i)=>ov["cst:"+(i+1)]):[];
+  await rebuildCustomParts(
+    [...baseMid,...parts],
+    [...baseRecs,...parts.map(()=>null)],
+    [...basePauses,...parts.map(p=>p.p)],
+    [...baseOvs,...parts.map(()=>undefined)]
+  );
+  cur=useAppend?baseMid.length+1:1;editing=false;pp=0;
+  st.textContent=`Loaded ${parts.length} script part${parts.length>1?"s":""}.`;st.className="stat";
+  render();
+}
+async function decodeAudioFile(file){
+  const c=AC();await c.resume();
+  const buf=await c.decodeAudioData(await file.arrayBuffer());
+  return mono(buf);
+}
+async function importBatchAudio(files){
+  const list=Array.from(files||[]);if(!list.length)return;
+  const st=$("cstStat");st.className="stat";st.textContent="Decoding audio files…";
+  const newMid=[],newRecs=[],newPauses=[];
+  for(const f of list){
+    try{
+      const b=await decodeAudioFile(f);
+      const name=f.name.replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim()||("Audio "+(newMid.length+1));
+      newMid.push({t:name,g:"Audio-only part. Adjust silence after or combine directly.",p:O.gap||4,x:""});
+      newRecs.push(b);newPauses.push(O.gap||4);
+    }catch(e){
+      st.textContent=`Could not decode "${f.name}". Try MP3, WAV, M4A, or OGG.`;st.className="stat err";return;
+    }
+  }
+  const keepExisting=!isPristineCustom();
+  const baseMid=keepExisting?SESS.cst.a.slice(1,-1):[];
+  const baseRecs=keepExisting?R.cst.slice(1,-1):[];
+  const basePauses=keepExisting?P.cst.slice(1,-1):[];
+  const baseOvs=keepExisting?baseMid.map((_,i)=>ov["cst:"+(i+1)]):[];
+  await rebuildCustomParts(
+    [...baseMid,...newMid],
+    [...baseRecs,...newRecs],
+    [...basePauses,...newPauses],
+    [...baseOvs,...newMid.map(()=>undefined)]
+  );
+  cur=keepExisting?baseMid.length+1:1;editing=false;pp=0;
+  st.textContent=`Added ${newMid.length} audio file${newMid.length>1?"s":""} to combine.`;st.className="stat";
+  render();
+}
+async function addCustomPart(withScript){
+  const mid=SESS.cst.a.slice(1,-1),recMid=R.cst.slice(1,-1),pMid=P.cst.slice(1,-1),ovMid=mid.map((_,i)=>ov["cst:"+(i+1)]);
+  const n=mid.length+1;
+  mid.push({t:"Part "+n,g:withScript?"Write or edit your script, then record or upload audio.":"Audio-only part. Record freely or upload an audio file.",p:O.gap||3,x:withScript?"Write your script here…":""});
+  recMid.push(null);pMid.push(O.gap||3);ovMid.push(undefined);
+  await rebuildCustomParts(mid,recMid,pMid,ovMid);
+  cur=mid.length;editing=!!withScript;pp=0;render();
+}
+async function deleteCustomPart(idx){
+  const mid=SESS.cst.a.slice(1,-1);if(mid.length<=1)return;
+  const mIdx=idx-1,recMid=R.cst.slice(1,-1),pMid=P.cst.slice(1,-1),ovMid=mid.map((_,i)=>ov["cst:"+(i+1)]);
+  mid.splice(mIdx,1);recMid.splice(mIdx,1);pMid.splice(mIdx,1);ovMid.splice(mIdx,1);
+  await rebuildCustomParts(mid,recMid,pMid,ovMid);
+  cur=Math.min(idx,SESS.cst.a.length-2);editing=false;pp=0;render();
+}
+async function moveCustomPart(idx,dir){
+  const mid=SESS.cst.a.slice(1,-1),mIdx=idx-1,to=mIdx+dir;
+  if(to<0||to>=mid.length)return;
+  const recMid=R.cst.slice(1,-1),pMid=P.cst.slice(1,-1),ovMid=mid.map((_,i)=>ov["cst:"+(i+1)]);
+  for(const arr of[mid,recMid,pMid,ovMid]){const tmp=arr[mIdx];arr[mIdx]=arr[to];arr[to]=tmp}
+  await rebuildCustomParts(mid,recMid,pMid,ovMid);
+  cur=to+1;editing=false;pp=0;render();
+}
 /* playback */
 function stopPlay(){if(src){try{src.onended=null;src.stop()}catch(e){}src=null}if(curBtn){curBtn.textContent=curLabel;curBtn=null}}
 function play(buf,btn,label,off){stopPlay();const c=AC();c.resume();src=c.createBufferSource();src.buffer=buf;src.connect(c.destination);curBtn=btn;curLabel=label;btn.textContent="Stop";src.onended=()=>{src=null;btn.textContent=label;curBtn=null};src.start(0,off||0)}
@@ -365,19 +565,23 @@ function play(buf,btn,label,off){stopPlay();const c=AC();c.resume();src=c.create
 function estLen(){let t=0;S.forEach((s,i)=>{if(s.opt&&!recs[i])return;const x=fill(getX(i));t+=recs[i]?recs[i].duration:words(x.replace(/\[pause\]/g,""))/2+(x.match(/\[pause\]/g)||[]).length*O.cl;if(i<S.length-1)t+=pauses[i]});return t}
 function dots(){$("dots").innerHTML=S.map((s,i)=>`<button class="dot ${i==cur?"on":""} ${recs[i]?"done":""}" data-go="${i}" role="tab">${i+1}. ${esc(s.t)}</button>`).join("")}
 function render(){
-  const s=S[cur],r=recs[cur],x=fill(getX(cur));
+  $("customPanel").hidden=key!=="cst";
+  const s=S[cur],r=recs[cur],rawX=getX(cur),x=fill(rawX),hasText=!!x.trim(),isCustomMid=key==="cst"&&!s.sh;
   const paras=x.split(/\n\n/).map(p=>`<p>${esc(p).replace(/\[pause\]/g,'<span class="cue">pause</span>')}</p>`).join("");
-  const scr=editing?`<textarea id="ed" rows="12">${esc(getX(cur))}</textarea><div class="row" style="margin-top:8px"><button class="btn main" id="sv">Save script</button><button class="btn" id="rs">Reset to default</button><span class="tip" style="margin:0 4px">Insert:</span><button class="btn" data-tk="{client name}">client name</button><button class="btn" data-tk="{goal}">goal</button><button class="btn" data-tk="{anchor word}">anchor word</button><button class="btn" data-tk="[pause]">pause</button></div>`
-   :recOn?`<div class="telewrap"><div class="script tele" id="scr">${paras}</div><div class="mark"></div></div>`:`<div class="script">${paras}</div>`;
+  const scr=editing?`<textarea id="ed" rows="12" placeholder="Write or paste your script for this part…">${esc(rawX)}</textarea><div class="row" style="margin-top:8px"><button class="btn main" id="sv">Save script</button><button class="btn" id="rs">Reset to default</button><span class="tip" style="margin:0 4px">Insert:</span><button class="btn" data-tk="{client name}">client name</button><button class="btn" data-tk="{goal}">goal</button><button class="btn" data-tk="{anchor word}">anchor word</button><button class="btn" data-tk="[pause]">pause</button></div>`
+   :recOn?(hasText?`<div class="telewrap"><div class="script tele" id="scr">${paras}</div><div class="mark"></div></div>`:`<div class="script empty-scr">Audio-only recording in progress — speak naturally and click Stop recording when finished.</div>`)
+   :(hasText?`<div class="script">${paras}</div>`:`<div class="script empty-scr">No written script on this part (audio-only mode). Click <strong>Record this part</strong> to speak freely, <strong>Upload audio</strong> to import a file, or <strong>Edit script</strong> to add text.</div>`);
   const pu=r&&!recOn?`<div class="punch"><label class="p">Punch point <input type="range" id="pp" min="0" max="${r.duration.toFixed(1)}" step="0.1" value="${Math.min(pp,r.duration).toFixed(1)}" style="flex:1"> <span id="ppv">${Math.min(pp,r.duration).toFixed(1)} s</span></label><div class="row" style="margin-top:8px"><button class="btn" id="pf">Play from here</button><button class="btn" id="punch">Re-record from here</button><button class="btn" id="polb">Hear with voice polish</button></div></div>`:"";
+  const cBar=isCustomMid&&!recOn?`<div class="cpartbar norec"><label class="p" style="flex:1 1 200px">Part title <input type="text" id="partTitle" value="${esc(s.t)}"></label><button class="btn sm" id="mvUp" ${cur<=1?"disabled":""}>Move earlier</button><button class="btn sm" id="mvDn" ${cur>=S.length-2?"disabled":""}>Move later</button><button class="btn sm" id="delPart" ${S.length<=3?"disabled":""}>Remove part</button></div>`:"";
   const off=editing||starting;
-  $("step").innerHTML=`<h2 class="ph">Part ${cur+1} of ${S.length}: ${esc(s.t)}${s.opt?" (optional)":""}</h2><p class="goal norec">${esc(s.g)}</p>
+  $("step").innerHTML=`<h2 class="ph">Part ${cur+1} of ${S.length}: ${esc(s.t)}${s.opt?" (optional)":""}</h2><p class="goal norec">${esc(s.g)}</p>${cBar}
   <div class="sticky"><div class="recbar"><button class="btn ${recOn?"rec":"main"}" id="recBtn" ${editing?"disabled":""}>${recOn?"Stop recording":r?"Record again":"Record this part"}</button><div class="meter" aria-hidden="true"><i id="lvl"></i></div></div>
-  <div class="info"><span class="stat" id="st">${r?"Recorded, "+dur(r):"Not recorded yet."}</span><span class="stat" id="hint"></span><span class="cdn" id="cd" aria-live="polite"></span></div></div>
+  <div class="info"><span class="stat" id="st">${r?"Recorded / loaded, "+dur(r):"Not recorded yet."}</span><span class="stat" id="hint"></span><span class="cdn" id="cd" aria-live="polite"></span></div></div>
   ${scr}
   <div class="row norec"><button class="btn" id="seqBtn" ${recOn||off?"disabled":""}>Record all in sequence</button>
-  <button class="btn" id="play" ${r&&!recOn?"":"disabled"}>Play recording</button><button class="btn" id="del" ${r&&!recOn?"":"disabled"}>Delete</button>
-  <button class="btn" id="edit" ${recOn?"disabled":""}>${editing?"Close editor":"Edit script"}</button></div>
+  <label class="btn" style="display:inline-block;${recOn||off?"opacity:.45;pointer-events:none":""}">Upload audio<input type="file" id="partAudio" accept="audio/*" class="sr-only" ${recOn||off?"disabled":""}></label>
+  <button class="btn" id="play" ${r&&!recOn?"":"disabled"}>Play audio</button><button class="btn" id="del" ${r&&!recOn?"":"disabled"}>Clear audio</button>
+  <button class="btn" id="edit" ${recOn?"disabled":""}>${editing?"Close editor":hasText?"Edit script":"Add script"}</button></div>
   <div class="row" style="margin-top:12px"><label class="p norec">Silence after this part <input type="number" id="pz" min="0" max="120" value="${pauses[cur]}"> sec</label>
   <label class="p">Teleprompter speed <input type="range" id="spd" data-o="spd" min="10" max="120" value="${O.spd}"></label>
   <label class="p norec">Pause cue <input type="number" id="cl" data-o="cl" min="1" max="30" value="${O.cl}"> sec</label></div><div class="norec">${pu}
@@ -388,7 +592,7 @@ function render(){
 const recClass=()=>document.body.classList.toggle("rec",recOn||starting||seq);
 function mixInfo(){
   const req=S.map((s,i)=>[s,i]).filter(a=>!a[0].opt),n=req.filter(a=>recs[a[1]]).length,miss=req.filter(a=>!recs[a[1]]).map(a=>a[0].t);
-  $("mixInfo").innerHTML=`${n} of ${req.length} parts recorded. Estimated length: about ${fmt(estLen())}. Your optional intro and outro are included if recorded.`+(miss.length?`<ul class="miss">${miss.map(m=>`<li>${esc(m)}</li>`).join("")}</ul>`:" Ready to combine.");
+  $("mixInfo").innerHTML=`${n} of ${req.length} parts ready. Estimated length: about ${fmt(estLen())}. Your optional intro and outro are included if recorded.`+(miss.length?`<ul class="miss">${miss.map(m=>`<li>${esc(m)}</li>`).join("")}</ul>`:" Ready to combine.");
   $("build").disabled=!recs.some(Boolean);$("rp").style.strokeDashoffset=113.1*(1-n/req.length);$("rt").textContent=n+"/"+req.length;
 }
 const stat=(m,err)=>{const e=$("st");if(e){e.textContent=m;e.className="stat"+(err?" err":"")}};
@@ -432,14 +636,20 @@ async function toggleRec(at){
   tm=setInterval(()=>stat("Recording… "+((Date.now()-t0)/1000).toFixed(0)+" s"),500);
 }
 const nav=()=>{stopPlay();editing=false;pp=0;render()};
+function switchSession(newKey){
+  if(recOn||starting){$("sess").value=key;return}
+  stopPlay();key=newKey;$("sess").value=key;S=SESS[key].a;recs=R[key];pauses=P[key];
+  cur=key==="cst"&&S.length>2?1:0;editing=false;pp=0;inval();$("mixStat").textContent="";render();
+}
 document.addEventListener("click",async e=>{
   const t=e.target.closest("button");if(!t)return;const id=t.id,busy=recOn||starting;
   if(t.dataset.go!==undefined){if(busy)return;cur=+t.dataset.go;nav()}
+  else if(id=="goCustom")switchSession("cst")
   else if(id=="recBtn"){if(recOn)seq=false;toggleRec()}
   else if(id=="seqBtn"){seq=true;toggleRec()}
   else if(id=="prev"&&!busy){cur--;nav()}else if(id=="next"&&!busy){cur++;nav()}
   else if(id=="del"){setRec(cur,null);inval();stopPlay();render()}
-  else if(id=="play"){if(src)stopPlay();else play(recs[cur],t,"Play recording")}
+  else if(id=="play"){if(src)stopPlay();else play(recs[cur],t,"Play audio")}
   else if(id=="pf")play(recs[cur],t,"Play from here",pp)
   else if(id=="punch")toggleRec(pp)
   else if(id=="polb"){t.textContent="Processing…";play(await polish(recs[cur]),t,"Hear with voice polish")}
@@ -449,13 +659,49 @@ document.addEventListener("click",async e=>{
   else if(t.dataset.tk!==undefined){const a=$("ed");a.setRangeText(t.dataset.tk,a.selectionStart,a.selectionEnd,"end");a.focus()}
   else if(id=="theme")theme()
   else if(id=="bpv")bedPreview(t)
+  else if(id=="togglePaste"){$("pasteWrap").hidden=!$("pasteWrap").hidden;if(!$("pasteWrap").hidden)$("pasteBox").focus()}
+  else if(id=="applyPaste")await loadCustomScriptText($("pasteBox").value,$("appendMode").checked)
+  else if(id=="cstAddScript")await addCustomPart(true)
+  else if(id=="cstAddAudioOnly")await addCustomPart(false)
+  else if(id=="mvUp")await moveCustomPart(cur,-1)
+  else if(id=="mvDn")await moveCustomPart(cur,1)
+  else if(id=="delPart")await deleteCustomPart(cur)
+  else if(id=="clearCustom"){
+    if(busy)return;
+    const def=DEFAULT_CST();
+    await rebuildCustomParts(def,[null],[def[0].p],[undefined]);
+    updateCustomMetaTitle("");$("cstTitle").value="";$("pasteBox").value="";
+    cur=1;editing=false;pp=0;$("cstStat").textContent="Custom session reset.";$("cstStat").className="stat";render();
+  }
 });
 document.addEventListener("input",e=>{const t=e.target;
   if(t.id=="pz"){pauses[cur]=Math.max(0,+t.value||0);inval();saveMeta();mixInfo()}
   else if(t.id=="pp"){pp=+t.value;$("ppv").textContent=pp.toFixed(1)+" s"}
+  else if(t.id=="cstTitle"){updateCustomMetaTitle(t.value)}
+  else if(t.id=="partTitle"&&key==="cst"&&!S[cur].sh){S[cur].t=t.value.trim()||("Part "+cur);dots();saveMeta();inval()}
   else if(t.dataset.o!==undefined){const k=t.dataset.o;O[k]=t.type=="checkbox"?t.checked:(t.type=="number"||t.type=="range")?+t.value:t.value;if(k!="spd"&&k!="cl"&&k!="bv")inval();saveMeta()}
   else if(t.dataset.t!==undefined){tok[t.dataset.t]=t.value;saveMeta();inval();if(!recOn&&!starting&&!editing)render()}
   else if(t.id=="lg"&&t.files[0]){const f=new FileReader();f.onload=()=>{setLogo(f.result);kv("set","logo",f.result)};f.readAsDataURL(t.files[0])}
+});
+document.addEventListener("change",async e=>{const t=e.target;
+  if(t.id=="scrFile"&&t.files[0]){
+    const text=await t.files[0].text();
+    $("pasteBox").value=text;$("pasteWrap").hidden=false;
+    await loadCustomScriptText(text,$("appendMode").checked);
+    t.value="";
+  }else if(t.id=="batchAudio"&&t.files.length){
+    await importBatchAudio(t.files);t.value="";
+  }else if(t.id=="partAudio"&&t.files[0]){
+    try{
+      stat("Decoding audio file…");
+      const b=await decodeAudioFile(t.files[0]);
+      setRec(cur,b);inval();render();
+      stat(`Loaded "${t.files[0].name}", ${dur(b)}.`);
+    }catch(err){
+      stat("Could not decode that audio file. Try MP3, WAV, M4A, or OGG.",1);
+    }
+    t.value="";
+  }
 });
 function setLogo(u){const i=new Image();i.onload=()=>{logoImg=i;$("lgp").src=u;$("lgp").hidden=false};i.src=u}
 function theme(){const h=document.documentElement,n={"":"light",light:"dark",dark:""}[h.dataset.theme||""];n?h.dataset.theme=n:delete h.dataset.theme;try{localStorage.setItem("pss-theme",n)}catch(e){}$("theme").textContent="Theme: "+(n||"auto")}
@@ -487,9 +733,10 @@ function id3(o){const f=[tx("TIT2",o.title),tx("TPE1",o.artist),tx("TALB",o.albu
   o.ch.forEach((c,i)=>f.push(fr("CHAP",cat(enc.encode("ch"+i),U([0]),U(u32(c.s)),U(u32(c.e)),U(u32(0xFFFFFFFF)),U(u32(0xFFFFFFFF)),tx("TIT2",c.t)))));
   if(o.ch.length)f.push(fr("CTOC",cat(enc.encode("toc"),U([0,3,o.ch.length]),...o.ch.map((c,i)=>cat(enc.encode("ch"+i),U([0]))))));
   const b=cat(...f);return cat(enc.encode("ID3"),U([4,0,0]),U(ss(b.length)),b)}
+const sessionDisplayName=()=>key==="cst"?(customTitle||"Custom session"):SESS[key].n;
 async function cover(){const c=document.createElement("canvas");c.width=c.height=600;const x=c.getContext("2d"),g=x.createLinearGradient(0,0,600,600);g.addColorStop(0,"#1d3b35");g.addColorStop(1,"#2f6b5a");x.fillStyle=g;x.fillRect(0,0,600,600);
   if(logoImg)try{const r=Math.min(160/logoImg.width,160/logoImg.height);x.drawImage(logoImg,300-logoImg.width*r/2,70,logoImg.width*r,logoImg.height*r)}catch(e){}
-  x.fillStyle="#fff";x.textAlign="center";x.font="500 40px Georgia,serif";x.fillText(SESS[key].n,300,340,540);x.font="400 26px Georgia,serif";x.fillText(tok.prac||"",300,520,540);
+  x.fillStyle="#fff";x.textAlign="center";x.font="500 40px Georgia,serif";x.fillText(sessionDisplayName(),300,340,540);x.font="400 26px Georgia,serif";x.fillText(tok.prac||"",300,520,540);
   return new Uint8Array(await(await new Promise(r=>c.toBlob(r,"image/png"))).arrayBuffer())}
 function crc32(u){let c,t=crc32.t||(crc32.t=Array.from({length:256},(_,n)=>{c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(let i=0;i<u.length;i++)r=t[(r^u[i])&255]^(r>>>8);return(r^-1)>>>0}
 function zipN(files){const h=(sz,f)=>{const a=new DataView(new ArrayBuffer(sz));f(a);return new Uint8Array(a.buffer)},P3=[],C=[];let off=0;
@@ -502,8 +749,8 @@ function mkPdf(title,sub,blocks){const {jsPDF}=window.jspdf,d=new jsPDF({unit:"p
   add=(t,sz,b,g)=>{d.setFont("times",b?"bold":"normal");d.setFontSize(sz);for(const l of d.splitTextToSize(asc(t),W-2*m)){if(y>H-m){d.addPage();y=m}d.text(l,m,y);y+=sz*1.45}y+=g};
   add(title,22,1,2);add(sub,11,0,14);for(const[h,t]of blocks){add(h,14,1,2);add(t,12,0,12)}return new Uint8Array(d.output("arraybuffer"))}
 const who=()=>tok.prac||"your practitioner";
-const pdfScript=()=>mkPdf(SESS[key].n+": practitioner script","Prepared by "+(tok.prac||"practitioner")+(tok.client?" for "+tok.client:""),S.map((s,i)=>[(i+1)+". "+s.t,fill(getX(i)).replace(/\[pause\]/g,"(pause)")]).filter((b,i)=>!S[i].opt||recs[i]));
-const pdfGuide=()=>mkPdf(SESS[key].n+": client guide","Prepared by "+(tok.prac||"your practitioner")+(tok.client?" for "+tok.client:""),[["Before you listen","Find a comfortable, quiet place where you can relax without interruption and silence your phone. Never listen while driving, operating machinery, or doing anything that needs your full attention."],["How to listen","Headphones are optional but can help. Simply listen and allow yourself to follow along. There is nothing to get right, and if your mind wanders that is perfectly fine. Gently return to the sound of the voice."],["If you fall asleep","This is normal, especially with relaxation and sleep sessions."],["When the session ends","Take a moment before you get up. Open your eyes, stretch, and take a slow breath. Wait until you feel fully alert before standing or driving."],["How often","Listen as often as "+who()+" recommends."],["Questions or concerns","If you feel unwell or have questions, stop listening and contact "+who()+" or a healthcare professional."]]);
+const pdfScript=()=>mkPdf(sessionDisplayName()+": practitioner script","Prepared by "+(tok.prac||"practitioner")+(tok.client?" for "+tok.client:""),S.map((s,i)=>[(i+1)+". "+s.t,(fill(getX(i)).trim()||"(Audio-only part — no written script)").replace(/\[pause\]/g,"(pause)")]).filter((b,i)=>!S[i].opt||recs[i]));
+const pdfGuide=()=>mkPdf(sessionDisplayName()+": client guide","Prepared by "+(tok.prac||"your practitioner")+(tok.client?" for "+tok.client:""),[["Before you listen","Find a comfortable, quiet place where you can relax without interruption and silence your phone. Never listen while driving, operating machinery, or doing anything that needs your full attention."],["How to listen","Headphones are optional but can help. Simply listen and allow yourself to follow along. There is nothing to get right, and if your mind wanders that is perfectly fine. Gently return to the sound of the voice."],["If you fall asleep","This is normal, especially with relaxation and sleep sessions."],["When the session ends","Take a moment before you get up. Open your eyes, stretch, and take a slow breath. Wait until you feel fully alert before standing or driving."],["How often","Listen as often as "+who()+" recommends."],["Questions or concerns","If you feel unwell or have questions, stop listening and contact "+who()+" or a healthcare professional."]]);
 async function save(fn,data){let d=null;const st=$("mixStat");try{d=await claude.use("downloads")}catch(e){}
   try{if(d){await d.save({filename:fn,data});st.textContent="Saved "+fn+". Unzip it to get your files."}else{const a=document.createElement("a");a.href=URL.createObjectURL(data);a.download=fn;a.click();st.textContent="Download started."}st.className="stat"}
   catch(e){st.textContent=e&&e.code=="declined"?"Download cancelled.":"The download couldn’t be saved here. Try opening this page in a full browser tab.";st.className="stat err"}}
@@ -521,12 +768,12 @@ $("build").onclick=async()=>{
   for(let k=0;k<total;k+=N){const sl=pcm.subarray(k,k+N),i16=new Int16Array(sl.length);for(let j=0;j<sl.length;j++){const v=Math.max(-1,Math.min(1,sl[j]));i16[j]=v<0?v*32768:v*32767}
     const b=en.encodeBuffer(i16);if(b.length)out.push(b);st.textContent="Encoding MP3… "+Math.round(k/total*100)+"%";await sleep(0)}
   const f=en.flush();if(f.length)out.push(f);
-  const tag=id3({title:SESS[key].n,artist:tok.prac||"Practitioner",album:"Hypnosis session",art:O.art?await cover():null,ch:O.art?ch:[]});
+  const tag=id3({title:sessionDisplayName(),artist:tok.prac||"Practitioner",album:"Hypnosis session",art:O.art?await cover():null,ch:O.art?ch:[]});
   mp3Blob=new Blob([tag,...out],{type:"audio/mpeg"});
   const m=Math.floor(total/sr/60),s=Math.round(total/sr%60);
   st.textContent=`Session ready: ${m} min ${s} sec, ${(mp3Blob.size/1048576).toFixed(1)} MB.`;
   $("mixPlay").disabled=$("dl").disabled=$("pk").disabled=false;
-  $("done").hidden=false;$("doneInfo").textContent=`${SESS[key].n}: ${m} min ${s} sec, ${parts.length} parts${bed!="none"?", with background "+bed:""}.`;
+  $("done").hidden=false;$("doneInfo").textContent=`${sessionDisplayName()}: ${m} min ${s} sec, ${parts.length} parts${bed!="none"?", with background "+bed:""}.`;
   const cv=$("wf"),c=cv.getContext("2d"),w=cv.width=cv.clientWidth*(devicePixelRatio||1),h=cv.height=110*(devicePixelRatio||1),step=Math.max(1,Math.floor(total/w));
   c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--accent");for(let x=0;x<w;x++){let mx=0;for(let k=x*step;k<(x+1)*step&&k<total;k+=8)mx=Math.max(mx,Math.abs(pcm[k]));const hh=Math.max(1,mx*h*.95);c.fillRect(x,(h-hh)/2,1,hh)}
   }catch(e){st.textContent="Something went wrong while building. Try again.";st.className="stat err"}
@@ -536,17 +783,26 @@ $("mixPlay").onclick=e=>{if(src)stopPlay();else play(mixBuf,e.target,"Play full 
 $("dl").onclick=async()=>save(SESS[key].f+".zip",zipN([{name:SESS[key].f+".mp3",u:new Uint8Array(await mp3Blob.arrayBuffer())}]));
 $("pk").onclick=async()=>{const fn=SESS[key].f;try{if(!window.jspdf)throw 0;save(fn+"-pack.zip",zipN([{name:fn+".mp3",u:new Uint8Array(await mp3Blob.arrayBuffer())},{name:fn+"-script.pdf",u:pdfScript()},{name:fn+"-client-guide.pdf",u:pdfGuide()}]))}catch(e){$("mixStat").textContent="The PDF tool didn’t load. Check your connection and try again.";$("mixStat").className="stat err"}};
 const sel=$("sess");sel.innerHTML=Object.keys(SESS).map(k=>`<option value="${k}">${SESS[k].n}</option>`).join("");
-sel.onchange=()=>{if(recOn||starting){sel.value=key;return}stopPlay();key=sel.value;S=SESS[key].a;recs=R[key];pauses=P[key];cur=0;editing=false;pp=0;inval();$("mixStat").textContent="";render()};
+sel.onchange=()=>switchSession(sel.value);
 (async()=>{try{const t=localStorage.getItem("pss-theme");if(t){document.documentElement.dataset.theme=t;$("theme").textContent="Theme: "+t}else $("theme").textContent="Theme: auto"}catch(e){$("theme").textContent="Theme: auto"}
   if(matchMedia("(max-width:600px)").matches)["dp","db"].forEach(i=>$(i).open=false);
   render();
   const m=await kv("get","meta");
-  if(m){Object.assign(tok,m.tok||{});Object.assign(ov,m.ov||{});Object.assign(O,m.O||{});for(const k in m.P||{})if(P[k]&&m.P[k].length==P[k].length)P[k]=m.P[k]}
+  if(m){
+    if(Array.isArray(m.customParts)&&m.customParts.length){
+      SESS.cst.a=[INTRO,...m.customParts,OUTRO];
+      R.cst=SESS.cst.a.map(()=>null);
+      P.cst=SESS.cst.a.map(s=>s.p);
+    }
+    if(m.customTitle){updateCustomMetaTitle(m.customTitle);$("cstTitle").value=m.customTitle}
+    Object.assign(tok,m.tok||{});Object.assign(ov,m.ov||{});Object.assign(O,m.O||{});
+    for(const k in m.P||{})if(P[k]&&m.P[k].length==P[k].length)P[k]=m.P[k];
+  }
   for(const k in O){const e=$(k);if(e){if(e.type=="checkbox")e.checked=O[k];else e.value=O[k]}}
   document.querySelectorAll("[data-t]").forEach(e=>e.value=tok[e.dataset.t]);
   const shared={};
   for(const k in SESS)for(let i=0;i<SESS[k].a.length;i++){const sh=SESS[k].a[i].sh,id="r:"+pidk(k,i);let v=sh&&sh in shared?shared[sh]:await kv("get",id);if(sh)shared[sh]=v;if(v)R[k][i]=unpack(v)}
-  pauses=P[key];recs=R[key];const lg=await kv("get","logo");if(lg)setLogo(lg);render()})();
+  S=SESS[key].a;pauses=P[key];recs=R[key];const lg=await kv("get","logo");if(lg)setLogo(lg);render()})();
 </script>
 </body>
 </html>
