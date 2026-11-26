@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Practitioner Session Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{color-scheme:light;--bg:#f6f8f4;--panel:#ffffff;--ink:#1d2b27;--mute:#5d6e68;--line:#cfd8d2;--accent:#2f6b5a;--onaccent:#fff;--rec:#b8412f;--done:#2f6b5a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Instrument Sans",system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+h1{font:500 2rem/1.15 Newsreader,Georgia,serif;margin:0 0 6px}
+.lede{color:var(--mute);margin:0 0 24px;max-width:60ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:18px}
+.dots{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.dot{flex:1 1 70px;min-width:70px;border:1px solid var(--line);background:var(--panel);color:var(--mute);border-radius:6px;padding:7px 6px;font:inherit;font-size:.78rem;cursor:pointer;text-align:left}
+.dot.on{border-color:var(--accent);color:var(--ink);box-shadow:inset 0 -3px 0 var(--accent)}
+.dot.done::after{content:" ✓";color:var(--done)}
+h2{font:500 1.35rem/1.2 Newsreader,Georgia,serif;margin:0 0 4px}
+.goal{color:var(--mute);font-size:.9rem;margin:0 0 16px}
+.script{font:400 1.28rem/1.75 Newsreader,Georgia,serif;max-width:56ch;border-left:3px solid var(--line);padding:2px 0 2px 18px;margin:0 0 20px}
+.script p{margin:0 0 .9em}
+.script.empty-scr{font:400 .95rem/1.55 "Instrument Sans",system-ui,sans-serif;color:var(--mute);padding:10px 0 10px 16px}
+.cue{display:inline-block;font:500 .72rem/1 "Instrument Sans",sans-serif;color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:3px 9px;margin:0 3px;vertical-align:middle}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:9px 16px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.main{background:var(--accent);border-color:var(--accent);color:var(--onaccent)}
+.btn.rec{background:var(--rec);border-color:var(--rec);color:#fff}
+.btn.sm{padding:6px 11px;font-size:.85rem}
+.btn:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.meter{height:6px;background:var(--line);border-radius:3px;overflow:hidden;flex:1 1 120px;min-width:100px}
+.meter i{display:block;height:100%;width:0;background:var(--rec)}
+.stat{color:var(--mute);font-size:.88rem;min-height:1.4em;margin-top:12px}
+.stat.err{color:var(--rec)}
+label.p{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:.88rem}
+input[type=number]{width:62px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.nav{display:flex;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.tip{font-size:.85rem;color:var(--mute);margin-top:14px}
+ul.miss{margin:8px 0 0;padding-left:18px;color:var(--mute);font-size:.88rem}
+select{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+@media (prefers-reduced-motion:no-preference){.dot{transition:border-color .15s}}
+
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12181a;--panel:#1a2326;--ink:#dfe8e4;--mute:#93a49d;--line:#2c3b3a;--accent:#5fb89e;--onaccent:#0c1513;--rec:#e0614d;--done:#5fb89e}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12181a;--panel:#1a2326;--ink:#dfe8e4;--mute:#93a49d;--line:#2c3b3a;--accent:#5fb89e;--onaccent:#0c1513;--rec:#e0614d;--done:#5fb89e}
+.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.ringbox{display:flex;flex-direction:column;align-items:center;gap:6px}
+input[type=text],textarea{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0;width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.grid label.p{flex-direction:column;align-items:stretch}
+textarea{font:400 1rem/1.6 Newsreader,Georgia,serif;resize:vertical}
+.telewrap{position:relative;margin-bottom:12px}.tele{position:relative;font-size:1.7rem;line-height:1.6;height:40vh;height:40dvh;max-height:none;overflow-y:auto;padding:14vh 0 30vh 16px;padding:14dvh 0 30dvh 16px;margin:0;overscroll-behavior:contain}
+.mark{position:absolute;left:0;right:0;top:35%;border-top:1px dashed var(--accent);opacity:.5;pointer-events:none}
+.cdn{font:500 1.15rem/1.2 Newsreader,Georgia,serif;color:var(--rec);margin:0}
+.sticky{position:sticky;top:0;z-index:5;background:var(--panel);padding:8px 0 6px;margin:0 0 10px;border-bottom:1px solid var(--line)}
+.recbar{display:flex;gap:10px;align-items:center}.recbar .btn{flex:0 0 auto;white-space:nowrap}.recbar .meter{height:14px;flex:1 1 auto;border-radius:7px;border:1px solid var(--line)}
+.info{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline;min-height:1.4em;margin-top:6px}.info .stat{margin:0;min-height:0;font-size:.82rem}.info #st{flex:1 1 auto}
+body.rec .norec{display:none!important}body.rec .wrap{padding-top:8px}body.rec h2.ph{font-size:1.05rem;margin-bottom:6px}body.rec #step{padding:10px 14px}
+details.card>summary{cursor:pointer;list-style:none}details.card>summary::-webkit-details-marker{display:none}details.card>summary h2{display:inline}details.card>summary::after{content:" ▾";color:var(--mute)}details.card[open]>summary{margin-bottom:6px}
+@media (max-width:600px){.wrap{padding:12px 12px 40px}h1{font-size:1.5rem}.lede{font-size:.9rem;margin-bottom:12px}.card{padding:14px;margin-bottom:12px}.tele{font-size:1.4rem}.btn{padding:8px 12px}.row{gap:8px}.dots{flex-wrap:nowrap;overflow-x:auto;margin-bottom:12px}.dot{flex:0 0 auto;white-space:nowrap}.nav{margin-top:14px;padding-top:12px}.goal{margin-bottom:10px}}
+.punch{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+#wf{width:100%;height:110px;display:block}#lgp{height:40px;border-radius:6px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}.opts label.p{flex-wrap:wrap}
+.script:not(.tele){font-size:1.1rem;line-height:1.6;max-height:34vh;max-height:34dvh;overflow-y:auto;margin-bottom:12px;overscroll-behavior:contain}
+.tele{font-size:1.4rem}
+@media (max-width:600px){.script:not(.tele){font-size:1rem}.tele{font-size:1.2rem}}
+.info{flex-wrap:nowrap;height:1.6rem;min-height:0;overflow:hidden;align-items:center}
+.info .stat{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.info #st{flex:1 1 0}.info #hint{flex:0 1 auto}
+.info #cd{flex:0 0 auto;min-width:6.5em;text-align:right;white-space:nowrap}
+.cbox{border:1px dashed var(--line);border-radius:8px;padding:14px;margin-top:12px;background:var(--bg)}
+.cbox h3{font:500 1.05rem/1.2 Newsreader,Georgia,serif;margin:0 0 6px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
+.cpartbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;margin-bottom:14px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.cpartbar input[type=text]{flex:1 1 180px;background:var(--panel)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top norec"><div><h1>Practitioner Session Studio</h1>
+  <p class="lede">Choose a session—or build a completely custom one from your own script or audio files—then record or import each part and combine everything into one polished MP3.</p></div>
+  <div class="ringbox"><svg viewBox="0 0 44 44" width="56" height="56" role="img" aria-label="Parts recorded"><circle r="18" cx="22" cy="22" fill="none" stroke="var(--line)" stroke-width="4"/><circle id="rp" r="18" cx="22" cy="22" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1" transform="rotate(-90 22 22)"/><text id="rt" x="22" y="25.5" text-anchor="middle" font-size="10" fill="currentColor">0/0</text></svg><button class="btn" id="theme">Theme</button></div></div>
+
+  <details class="card norec" id="dp" open><summary><h2>Personalize</h2></summary><p class="goal">Fills {client name}, {goal} and {anchor word} anywhere they appear in a script. Leave blank to use neutral wording.</p>
+  <div class="grid"><label class="p">Client name <input type="text" data-t="client"></label><label class="p">Goal <input type="text" data-t="goal" placeholder="e.g. a calm, clear mind"></label><label class="p">Anchor word <input type="text" data-t="anchor" placeholder="e.g. peace"></label></div></details>
+
+  <div class="row norec" style="margin-bottom:12px">
+    <label class="p">Session <select id="sess"></select></label>
+    <button class="btn sm" id="goCustom" type="button">Custom session</button>
+  </div>
+
+  <div class="card norec" id="customPanel" hidden>
+    <h2>Custom session setup</h2>
+    <p class="goal">Record your own uploaded or pasted script, record freely without a script, or import existing audio files to combine.</p>
+    <div class="row" style="margin-bottom:10px">
+      <label class="p" style="flex:1 1 240px">Session title <input type="text" id="cstTitle" placeholder="Custom session"></label>
+      <button class="btn sm" id="cstAddScript" type="button">+ Add script part</button>
+      <button class="btn sm" id="cstAddAudioOnly" type="button">+ Add audio-only part</button>
+    </div>
+    <div class="cgrid">
+      <div class="cbox">
+        <h3>1. From your own script</h3>
+        <p class="goal" style="margin-bottom:10px">Upload a <code>.txt</code> or <code>.md</code> file, or paste your script below. Supports <code>[pause]</code> and personalization tokens.</p>
+        <div class="row" style="margin-bottom:8px">
+          <label class="btn sm" style="display:inline-block">Upload script (.txt / .md)<input type="file" id="scrFile" accept=".txt,.md,.text,text/plain" class="sr-only"></label>
+          <button class="btn sm" id="togglePaste" type="button">Paste script</button>
+        </div>
+        <label class="p" style="margin-bottom:8px">Split script into parts
+          <select id="splitMode">
+            <option value="headings">By headings / sections</option>
+            <option value="paragraphs">By paragraphs</option>
+            <option value="single">Keep as one part</option>
+          </select>
+        </label>
+        <div id="pasteWrap" hidden style="margin-top:8px">
+          <textarea id="pasteBox" rows="6" placeholder="Paste your script here. Use # Part Title on its own line to split into named parts, or separate paragraphs with a blank line..."></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn main sm" id="applyPaste" type="button">Load script into parts</button>
+            <label class="p"><input type="checkbox" id="appendMode"> Append to existing parts</label>
+          </div>
+        </div>
+      </div>
+      <div class="cbox">
+        <h3>2. Audio files to combine</h3>
+        <p class="goal" style="margin-bottom:10px">Select one or more audio files (MP3, WAV, M4A, OGG) to add as parts, or add blank audio parts to record directly.</p>
+        <div class="row">
+          <label class="btn main sm" style="display:inline-block">Upload audio files<input type="file" id="batchAudio" accept="audio/*" multiple class="sr-only"></label>
+          <button class="btn sm" id="clearCustom" type="button">Reset custom session</button>
+        </div>
+        <p class="tip" style="margin-top:10px">Each uploaded file becomes a reorderable part with adjustable silence, leveling, voice polish, and background bed.</p>
+      </div>
+    </div>
+    <div class="stat" id="cstStat"></div>
+  </div>
+
+  <div class="dots norec" id="dots" role="tablist" aria-label="Session parts"></div>
+  <div class="card" id="step"></div>
+
+  <details class="card norec" id="db" open><summary><h2>Your branding</h2></summary><p class="goal">Used on the cover art, ID3 tags, PDFs, and in your optional intro and outro (recorded once, used in every session).</p>
+  <div class="row"><label class="p" style="flex:1 1 200px">Your name <input type="text" id="pr" data-t="prac"></label><label class="p">Logo <input type="file" id="lg" accept="image/*"></label><img id="lgp" alt="" hidden></div></details>
+
+  <div class="card norec" id="mix">
+    <h2>Combine into one session</h2>
+    <p class="goal" id="mixInfo"></p>
+    <div class="opts">
+      <label class="p">Pause between parts <input type="number" id="gap" data-o="gap" min="0" max="60" value="4"> sec</label>
+      <label class="p">Background <select id="bed" data-o="bed"><option value="none">None</option><option value="pad">Soft pad</option><option value="rain">Rain</option><option value="ocean">Ocean</option><option value="drone">Deep drone</option></select></label>
+      <label class="p">Bed volume <input type="range" id="bv" data-o="bv" min="0" max="1" step="0.05" value="0.35"></label>
+      <label class="p"><input type="checkbox" id="duck" data-o="duck" checked> Duck bed under voice</label>
+      <label class="p"><input type="checkbox" id="norm" data-o="norm" checked> Level and trim each part</label>
+      <label class="p"><input type="checkbox" id="polc" data-o="polc"> Voice polish (EQ + light reverb)</label>
+      <label class="p"><input type="checkbox" id="art" data-o="art" checked> Cover art and chapters in MP3</label>
+    </div>
+    <div class="row">
+      <button class="btn" id="bpv">Preview background</button>
+      <button class="btn main" id="build">Build session</button>
+      <button class="btn" id="mixPlay" disabled>Play full session</button>
+      <button class="btn" id="dl" disabled>Download MP3</button>
+      <button class="btn" id="pk" disabled>Download session pack</button>
+    </div>
+    <div class="stat" id="mixStat"></div>
+    <p class="tip">The session pack is a zip with the MP3, a script PDF and a client guide PDF. Recordings, scripts and settings save automatically in this browser; clearing site data removes them. Always screen clients for suitability before using hypnosis.</p>
+  </div>
+
+  <div class="card norec" id="done" hidden><h2>Session complete</h2><p class="goal" id="doneInfo"></p><canvas id="wf" aria-label="Waveform of the finished session"></canvas></div>
+</div>
+
+<script>
+const ANX=[
+{t:"Welcome and settling",g:"Set expectations and begin the shift inward.",p:2,x:`Welcome. In a moment you’re going to give yourself permission to let go of everything you’ve been carrying, simply by listening to the sound of my voice.
+
+Find a position that feels comfortable, with your hands resting easily and your feet supported. [pause] There’s nothing you need to do, nothing you need to get right, and nowhere else you need to be.
+
+Whatever thoughts come and go, you can let them drift by like clouds across a wide sky. [pause] And as you settle, allow your eyes to close, whenever you’re ready.`},
+{t:"Breath",g:"Slow the breath, the body’s fastest route to calm.",p:3,x:`Now bring your attention to your breathing. [pause] Take a slow, deep breath in through your nose… and gently let it flow out through your mouth.
+
+Again, in… filling your chest and belly with fresh, calm air… and out… letting go of tension as you exhale. [pause]
+
+Breathing in a little slower than you breathe out. In for four… and out for six. [pause] Each time you breathe out, you’re telling your body it’s safe to soften.
+
+Just a few more, at your own pace. [pause] In… and out. In… and out.`},
+{t:"Progressive relaxation",g:"Release tension from head to toe.",p:3,x:`Let’s allow that calm to spread through your body. Begin with your forehead… let it smooth and soften. Your eyes, resting heavy and quiet. Your jaw, loosening, teeth slightly apart. [pause]
+
+Let that softness flow down through your neck and into your shoulders, and let your shoulders drop, as if setting down a heavy bag. [pause]
+
+Down through your arms… your hands… every finger relaxed. Your chest soft. Your stomach easy and loose. [pause]
+
+Down through your hips… your legs… all the way to your feet. Your whole body is heavy, warm and deeply relaxed.`},
+{t:"Deepening",g:"Take the relaxation deeper with a countdown.",p:3,x:`Now imagine a staircase in front of you, ten gentle steps leading down to a place of deep peace. With each step, you can go ten times more relaxed.
+
+Ten… stepping down. Nine… deeper and calmer. Eight… every muscle letting go. [pause]
+
+Seven… six… sinking comfortably. Five… four… your mind quiet and still. [pause]
+
+Three… two… and one. Arriving now at the bottom, deeply, wonderfully relaxed. [pause] And you’ll find the more you let go, the easier it becomes.`},
+{t:"Safe place",g:"Build a vivid, secure inner refuge.",p:4,x:`In your mind’s eye, picture a place where you feel completely safe and at ease. It might be real or imagined: a beach, a forest, a quiet room. [pause]
+
+Notice what you see there… the colors, the light. [pause] Notice what you hear… the gentle sounds that belong to this place. Notice the temperature on your skin, and the feeling of being held and supported.
+
+This is your place. [pause] You can return here whenever you choose, and you’re safe here, right now.`},
+{t:"Releasing anxiety",g:"Core suggestions: reframe, release and strengthen.",p:5,x:`In this calm, your mind is open and receptive. Anxiety is simply a signal, and you are learning that you can acknowledge it and let it pass.
+
+Imagine all your worries gathering into a cloud in front of you, a cloud of gray. [pause] With each out-breath, watch it grow lighter, thinner… drifting away until there is only clear, open sky.
+
+From now on, when you meet a challenge, you’ll notice your breath and your body staying steady. [pause] You’ll respond with calm and clarity, one moment at a time.
+
+Every day, in every way, you are becoming calmer, more confident, and more at ease. [pause] You trust yourself to handle whatever comes.`},
+{t:"Calm anchor",g:"Install a gesture that brings calm on demand.",p:4,x:`Now let’s create a way to bring this feeling with you. Gently press your thumb and forefinger together. [pause]
+
+As you do, feel the deep calm filling you, the steady breath, the quiet mind. This is your calm anchor.
+
+Whenever you press your fingers together and take a slow breath, this feeling returns, wherever you are. [pause] And each time you use it, it becomes stronger and more natural.`},
+{t:"Returning",g:"Bring the client fully and safely back.",p:0,x:`In a moment, I’ll count from one up to five, and you’ll return to full, alert awareness, carrying this calm with you.
+
+One… energy flowing back into your body. Two… feeling refreshed. Three… breathing a little deeper. [pause]
+
+Four… beginning to move your fingers and toes. And five… eyes open, wide awake, feeling calm, clear, and wonderful. Welcome back.`}
+];
+const SMK=[
+{t:"Welcome and intention",g:"Honor the decision and open the mind to change.",p:2,x:`Welcome. You’re here because you’ve made an important decision: to become a non-smoker, for good. That decision is already a powerful first step, and your mind is ready to support it.
+
+Settle into a comfortable position, and let your eyes close whenever you’re ready. [pause] For the next while, there’s nothing to do but listen, and allow yourself to be open to positive change.`},
+{t:"Breath and relaxation",g:"Settle the body and quiet the mind.",p:3,x:`Take a slow, deep breath in… and let it flow out, gently and completely. [pause] Again, in… and out, letting go a little more with each breath.
+
+Now let relaxation begin at the top of your head and flow down through your face… your jaw… your neck and shoulders. [pause] Down through your arms to your fingertips… your chest, your stomach… your legs, all the way to your toes.
+
+Your whole body is heavy, warm, and comfortably relaxed.`},
+{t:"Deepening",g:"Go deeper with a path and a countdown.",p:3,x:`Imagine yourself at the top of a gentle, grassy hill, with a winding path leading down into a peaceful valley. As I count from five down to one, you’ll walk down that path, going deeper with every step.
+
+Five… the air fresh and clean. Four… each step easier. [pause] Three… deeper and calmer. Two… your mind soft and quiet. [pause] And one. Arriving in the valley, deeply relaxed, and ready to listen.`},
+{t:"Your reasons",g:"Anchor the change in the client’s own motivation.",p:5,x:`Now bring to mind the reasons that matter most to you for being free of cigarettes. Perhaps your health, your energy, the people you love, your money, your freedom. [pause]
+
+Choose the strongest reason, and let yourself feel it fully, right now. [pause] Notice how good it feels to make this choice for yourself.
+
+This reason is yours, and it stays with you, strong and clear, every day from now on.`},
+{t:"Releasing the habit",g:"Reframe smoking and loosen its triggers.",p:5,x:`For a long time, smoking has been a habit your mind used to cope, to pause, or to fill a moment. But that habit no longer serves you. [pause] You are letting it go, and it is already losing its hold.
+
+Think of the times you used to reach for a cigarette: after a meal, with a coffee, in a stressful moment. [pause] In each of those moments, you’ll find yourself simply taking a deep breath, and carrying on, calm and in control.
+
+Your mind and body are learning that you are a non-smoker. [pause] It feels natural, and it feels right.`},
+{t:"Cravings and your anchor",g:"Teach the client to ride out urges and install a calming gesture.",p:4,x:`If a craving ever appears, you’ll know exactly what to do. A craving is like a wave. It rises, it peaks, and then it passes, usually within a few minutes. [pause] You can ride it out, steady and calm.
+
+Now gently press your thumb and forefinger together. [pause] Feel the calm, the strength, and the clear sense of choice. This is your anchor.
+
+Whenever an urge arises, press your fingers together, take a slow breath, and sip some water. [pause] The craving fades, and your confidence grows.`},
+{t:"Your smoke-free future",g:"Visualize success and lock in the new identity.",p:5,x:`Now imagine yourself a month from now, then a year from now, completely free of cigarettes. [pause] See yourself breathing easily, with more energy. Notice food tasting better, and your clothes and hair smelling fresh. [pause]
+
+See the money you’ve saved, and feel the pride of keeping a promise to yourself. [pause]
+
+You are a non-smoker. It’s who you are now, and every day it becomes stronger and more natural.`},
+{t:"Returning",g:"Bring the client fully and safely back.",p:0,x:`In a moment, I’ll count from one up to five, and you’ll return to full, alert awareness, carrying this strength and calm with you.
+
+One… energy flowing back into your body. Two… feeling refreshed and proud. Three… breathing a little deeper. [pause]
+
+Four… moving your fingers and toes. And five… eyes open, wide awake, feeling calm, clear, and free. Welcome back.`}
+];
+const REL=(a,b)=>[{t:"Breath and relaxation",g:"Settle the body and quiet the mind.",p:3,x:`Take a slow, deep breath in… and let it flow out, gently and completely. [pause] Again, in… and out, letting go a little more each time.
+
+Let relaxation flow from the top of your head down through your face… your jaw… your shoulders. [pause] Down through your arms… your chest and stomach… your legs, all the way to your toes. ${a}`},{t:"Deepening",g:"Go deeper with a countdown.",p:3,x:`Imagine a staircase of five gentle steps leading down to a place of deep calm. With each step, you go deeper.
+
+Five… letting go. Four… sinking comfortably. [pause] Three… deeper and calmer. Two… mind quiet and still. [pause] One. ${b}`}];
+const BACK=(extra)=>({t:"Returning",g:"Bring the client fully and safely back.",p:0,x:`In a moment, I’ll count from one up to five, and you’ll return to full, alert awareness, carrying these changes with you.
+
+One… energy flowing back into your body. Two… feeling refreshed. Three… breathing a little deeper. [pause]
+
+Four… moving your fingers and toes. And five… eyes open, wide awake, ${extra} Welcome back.`});
+const WGT=[
+{t:"Welcome and intention",g:"Screen first: this suits healthy-habit goals, not clients with disordered eating.",p:2,x:`Welcome. You’ve decided to build a healthier, happier relationship with food and your body, and your mind is ready to support you.
+
+Settle comfortably, and let your eyes close whenever you’re ready. [pause] There’s no pressure and no judgment here, only kindness toward yourself.`},
+...REL("Your whole body is heavy, warm and relaxed.","Deeply relaxed, and ready to listen."),
+{t:"Listening to your body",g:"Build mindful eating and hunger awareness.",p:5,x:`Your body has a natural wisdom. It knows when it’s hungry, and it knows when it’s satisfied. [pause]
+
+From now on, you’ll eat slowly, enjoying each bite, noticing the taste and texture. You’ll pause halfway through a meal and check in with your body. [pause]
+
+You’ll stop when you’re comfortably satisfied, and you’ll find that this feels natural and easy.`},
+{t:"Choices and triggers",g:"Loosen emotional eating and install a pause anchor.",p:5,x:`Sometimes we reach for food when we’re not hungry, when we’re stressed, tired, or bored. [pause] In those moments, you’ll now pause, press your thumb and forefinger together, and take a slow breath.
+
+Ask yourself: what do I truly need right now? [pause] Then choose what genuinely serves you, whether that’s a glass of water, a walk, a rest, or a nourishing meal.
+
+Each time you pause, your sense of choice grows stronger.`},
+{t:"Movement and self-image",g:"Link healthy movement and self-compassion.",p:5,x:`Now picture yourself moving in ways that feel good: walking, stretching, playing, dancing. [pause] See yourself enjoying your body for what it can do, with energy and ease.
+
+Notice the pride you feel in caring for yourself. [pause]
+
+You treat yourself with patience and respect. Every small, healthy choice moves you forward, and you are becoming comfortable, confident, and strong.`},
+BACK("feeling calm, confident, and in tune with your body.")];
+const ADD=[
+{t:"Welcome and intention",g:"Say the habit by name where you see [the habit]. Use alongside professional support.",p:2,x:`Welcome. You’re here because you’ve chosen to change your relationship with [the habit], and that choice takes real courage. Your mind is ready to support you.
+
+Settle comfortably, and let your eyes close whenever you’re ready. [pause] There’s no judgment here, only support and strength.`},
+...REL("Your whole body is heavy, warm and relaxed.","Deeply relaxed, and open to positive change."),
+{t:"Your reasons and strength",g:"Anchor the change in the client’s own motivation.",p:5,x:`Bring to mind what matters most to you: the people you love, your health, your self-respect, the life you want. [pause]
+
+Choose the strongest reason, and feel it fully. [pause] This reason is yours, and it grows stronger every day.
+
+You have faced difficulty before and found strength. That same strength is within you now.`},
+{t:"Loosening the hold",g:"Reframe urges as waves that pass.",p:5,x:`[The habit] has been a way of coping, but it no longer serves you. [pause] You are learning to meet those needs in healthier ways.
+
+When an urge arises, you’ll remember that it’s like a wave. It rises, it peaks, and it passes. [pause] You can breathe, and ride it out, steady and calm.
+
+With each urge you let pass, your freedom grows.`},
+{t:"Anchor and future self",g:"Install a gesture and visualize the changed life.",p:5,x:`Gently press your thumb and forefinger together. [pause] Feel calm, strength and choice flowing through you. This is your anchor. Whenever you need it, press your fingers together and take a slow breath.
+
+Now see yourself a year from today, free from [the habit]. [pause] See how you stand, how you feel, who is beside you. Feel the pride and peace of keeping a promise to yourself.`},
+BACK("feeling calm, strong, and in control.")];
+const ENR=[
+{t:"Welcome and intention",g:"Frame the session around renewed energy.",p:2,x:`Welcome. You’re here to restore your energy and rekindle your drive, and your mind is ready to help.
+
+Settle comfortably, and let your eyes close whenever you’re ready. [pause] For now, simply listen, and allow yourself to recharge.`},
+...REL("With each breath out, you release tiredness. With each breath in, you draw in fresh energy.","Deeply rested, and ready to be recharged."),
+{t:"Your inner energy",g:"Visualize an energy source and fill the body with it.",p:5,x:`Imagine a warm, glowing light in the center of your chest, bright and full of energy. [pause]
+
+With each breath, the light grows stronger and begins to spread. Into your arms and hands… down through your legs… up into your head. [pause]
+
+Every cell of your body fills with vitality. You feel alive, clear and awake.`},
+{t:"Motivation and direction",g:"Clarify one goal and the first action.",p:6,x:`Think now of something you want to move forward, a goal that matters to you. [pause] See it clearly, and notice why it matters.
+
+Now see the very first small step. [pause] Imagine taking it, and notice how good it feels to begin. Momentum builds with every action, and starting becomes easier each day.`},
+{t:"Energy anchor",g:"Install a gesture to recall energy on demand.",p:4,x:`Gently press your thumb and forefinger together. [pause] Feel the energy, the drive, the determination. This is your energy anchor.
+
+Whenever you need a lift, press your fingers together, take a deep breath, and feel that energy return. [pause] You are motivated, focused, and ready to take action.`},
+BACK("feeling energized, motivated, and ready for your day.")];
+const RLX=[
+{t:"Welcome and settling",g:"Invite the client to let go of the day.",p:2,x:`Welcome. For the next few minutes, you have nothing to do and nowhere to be, except right here, allowing yourself to rest.
+
+Find a comfortable position, and let your eyes close whenever you’re ready. [pause] Let the sound of my voice be a gentle background, while your mind and body do what they naturally know how to do: relax.`},
+...REL("Your whole body is heavy, warm and completely at ease.","Deeply relaxed, calm and peaceful."),
+{t:"Your place of calm",g:"Build a vivid, peaceful inner scene.",p:5,x:`Picture a place where you feel peaceful and completely at ease. It might be a quiet beach, a sunlit meadow, or a cozy room with soft light. [pause]
+
+Notice what you see… the colors, the gentle light. [pause] Notice what you hear… soft, soothing sounds. Feel the pleasant warmth on your skin, and the ground supporting you.
+
+With every breath, this place feels more real, and you feel more calm.`},
+{t:"Letting go",g:"Release lingering tension and busy thoughts.",p:6,x:`If any tension remains in your body, simply let it melt away, like snow in warm sunlight. [pause]
+
+And if thoughts arise, let them drift by like leaves floating down a quiet stream. You don’t need to follow them. [pause] There is nothing to solve, nothing to fix, and nothing to hold on to.
+
+Just peace, just stillness, just this moment.`},
+{t:"Calm anchor",g:"Install a gesture that brings calm on demand.",p:4,x:`Gently press your thumb and forefinger together. [pause] Feel the stillness and the ease filling you. This is your calm anchor.
+
+Whenever you press your fingers together and take a slow, deep breath, this peaceful feeling returns, wherever you are. [pause] And it grows stronger every time you use it.`},
+BACK("feeling deeply relaxed, calm, and refreshed.")];
+const SLP=[
+{t:"Welcome and settling",g:"Advise clients not to listen while driving or operating machinery.",p:2,x:`Welcome. The day is done, and it’s time to let it go. You can lie comfortably in your bed, with nothing left to do but rest.
+
+Let your eyes close, and let the sound of my voice drift in the background. [pause] There’s no need to try to sleep. Sleep comes naturally when you simply let go.`},
+...REL("Your whole body is heavy, warm and sinking into the bed.","Deeply relaxed, and drifting toward rest."),
+{t:"Quieting the mind",g:"Let busy thoughts slow and fade.",p:6,x:`If thoughts about the day or tomorrow appear, let them float past like clouds, growing softer and more distant. [pause] You don’t need to follow them. Everything can wait until the morning.
+
+With each breath out, your mind becomes quieter… slower… and more still. [pause]`},
+{t:"A restful night",g:"Give suggestions for easy, unbroken sleep.",p:6,x:`Your body knows how to sleep, and it’s ready to do so now. [pause] You’ll fall asleep easily, sleep deeply and peacefully, and rest soundly through the night.
+
+If you wake at all, you’ll simply drift back to sleep, calm and comfortable. [pause] And in the morning, you’ll wake naturally, refreshed and restored.`},
+{t:"Sinking into sleep",g:"The final part: fade slowly, with no count-up.",p:0,x:`Imagine yourself on a soft cloud, floating gently, warm and safe. [pause] With every breath, you sink a little deeper into comfort.
+
+Heavier… softer… quieter… [pause] And now, you can let yourself drift off to sleep. Goodnight.`}
+];
+const CNF=[
+{t:"Welcome and intention",g:"Open the mind to a stronger sense of self.",p:2,x:`Welcome. You’re here to strengthen your belief in yourself, and your mind is ready to listen.
+
+Settle comfortably, and let your eyes close whenever you’re ready. [pause] For now, there’s nothing to prove, only a chance to connect with your own inner strength.`},
+...REL("Your whole body is heavy, warm and relaxed.","Deeply relaxed, and open to positive change."),
+{t:"Remembering success",g:"Anchor to real past achievements.",p:6,x:`Think of a time when you felt proud of yourself. Perhaps a challenge you overcame, or a moment you did well. [pause] See it clearly. Hear what was said, and feel how you felt.
+
+That confidence is a part of you, and it’s still there. [pause] You’ve done it before, and you can do it again.`},
+{t:"Your confident self",g:"Visualize a confident self and shift inner talk.",p:6,x:`Now picture yourself as your most confident self. [pause] Notice how you stand, how you breathe, and the calm, steady look on your face.
+
+Step into this version of you, and feel it fully. [pause] From now on, the voice in your mind speaks kindly and encouragingly. You trust yourself, and you value who you are.`},
+{t:"Confidence anchor",g:"Install a gesture to recall confidence on demand.",p:4,x:`Gently press your thumb and forefinger together. [pause] Feel that confidence, that calm strength, filling you. This is your confidence anchor.
+
+Whenever you need it, press your fingers together and take a deep breath, and that feeling returns. [pause] You are capable, worthy, and ready.`},
+BACK("feeling calm, confident, and strong.")];
+const FOC=[
+{t:"Welcome and intention",g:"Frame the session around clear focus and performance.",p:2,x:`Welcome. You’re here to sharpen your focus and perform at your very best, and your mind is ready to help.
+
+Settle comfortably, and let your eyes close whenever you’re ready. [pause] For now, simply listen, and let the rest take care of itself.`},
+...REL("Your whole body is heavy, warm and relaxed.","Deeply relaxed, and mentally clear."),
+{t:"Clearing the mind",g:"Remove distractions and set one point of focus.",p:5,x:`Let any distractions fade into the background, like noise from a distant room. [pause] Your mind becomes clear, calm and still, like a quiet lake.
+
+Now bring your attention to a single point, and hold it there, steady and effortless. [pause] Whenever your mind wanders, you’ll gently bring it back, easily and without effort.`},
+{t:"Seeing yourself succeed",g:"Mental rehearsal. Name the task or event aloud.",p:6,x:`Now picture the task or event you’re preparing for. [pause] See yourself arriving, calm, prepared and focused.
+
+Watch yourself perform at your very best. Notice how easily things flow, how clearly you think. [pause] Feel the satisfaction of doing it well.
+
+Your mind and body remember this, and know exactly what to do.`},
+{t:"Focus anchor",g:"Install a gesture to recall focus on demand.",p:4,x:`Gently press your thumb and forefinger together. [pause] Feel the focus, the calm, the sharp clarity. This is your focus anchor.
+
+Whenever you need to concentrate, press your fingers together and take a slow breath, and your mind settles and sharpens. [pause] You are focused, prepared, and ready.`},
+BACK("feeling alert, clear, and ready to perform.")];
+const DEFAULT_CST=()=>[{t:"Custom part 1",g:"Upload or paste your script above, record freely, or upload an audio file.",p:3,x:""}];
+const SESS={
+  anx:{n:"Anxiety reduction",f:"anxiety-relief-session",a:ANX},
+  smk:{n:"Stop smoking",f:"smoke-free-session",a:SMK},
+  wgt:{n:"Weight management",f:"healthy-weight-session",a:WGT},
+  add:{n:"Addiction recovery (any habit)",f:"addiction-recovery-session",a:ADD},
+  enr:{n:"Energy and motivation",f:"energy-motivation-session",a:ENR},
+  rlx:{n:"Relaxation and calm",f:"relaxation-calm-session",a:RLX},
+  slp:{n:"Better sleep",f:"sleep-session",a:SLP},
+  cnf:{n:"Confidence and self-esteem",f:"confidence-session",a:CNF},
+  foc:{n:"Focus and performance",f:"focus-performance-session",a:FOC},
+  cst:{n:"Custom session (your script or audio)",f:"custom-session",a:DEFAULT_CST()}
+};
+const INTRO={t:"Your intro",g:"Optional spoken welcome with your name. Recorded once and reused in every session.",p:3,opt:1,sh:"intro",x:`Hello, and welcome. This session was recorded for you by {practitioner}.\n\nFind a quiet, safe place where you won’t be disturbed, and never listen while driving or operating machinery.`};
+const OUTRO={t:"Your outro",g:"Optional spoken sign-off. Recorded once and reused in every session.",p:0,opt:1,sh:"outro",x:`Thank you for listening. Repeat this session as often as your practitioner recommends. [pause] This recording was made for you by {practitioner}.`};
+for(const k in SESS){const a=SESS[k].a;if(/^Welcome\./.test(a[0].x))a[0]={...a[0],x:a[0].x.replace(/^Welcome\./,"Welcome, {client name}.")};SESS[k].a=[INTRO,...a,OUTRO]}
+let key="anx",S=SESS.anx.a,cur=0,ctx,src,curBtn,curLabel,mr,stream,raf,tm,mixBuf=null,mp3Blob=null,recOn=false,starting=false,cancelReq=false,seq=false,editing=false,pp=0,logoImg=null,saveT,customTitle="";
+const R={},P={},ov={},tok={client:"",goal:"",anchor:"",prac:""},O={gap:4,bed:"none",bv:.35,duck:true,polc:false,norm:true,art:true,spd:30,cl:4};
+for(const k in SESS){R[k]=SESS[k].a.map(()=>null);P[k]=SESS[k].a.map(s=>s.p)}
+let recs=R.anx,pauses=P.anx;
+const $=id=>document.getElementById(id),AC=()=>ctx||(ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:44100})),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const dur=b=>b?b.duration.toFixed(1)+" sec":"",esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])),words=t=>(t.match(/\S+/g)||[]).length,fmt=s=>s<90?Math.round(s)+" sec":Math.round(s/60)+" min";
+const slugify=t=>(t||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"custom-session";
+const pidk=(k,i)=>SESS[k].a[i].sh?"sh:"+SESS[k].a[i].sh:k+":"+i,pid=i=>pidk(key,i),getX=i=>ov[pid(i)]??S[i].x;
+function fill(t){t=tok.client?t.replace(/\{client name\}/g,tok.client):t.replace(/,? ?\{client name\}/g,"");return t.replace(/\{goal\}/g,tok.goal||"what matters most to you").replace(/\{anchor word\}/g,tok.anchor||"calm").replace(/\{practitioner\}/g,tok.prac||"your practitioner")}
+const mono=b=>{const n=b.numberOfChannels;if(n==1)return b;const o=AC().createBuffer(1,b.length,b.sampleRate),d=o.getChannelData(0);for(let c=0;c<n;c++){const x=b.getChannelData(c);for(let k=0;k<b.length;k++)d[k]+=x[k]/n}return o};
+const pack=b=>({sr:b.sampleRate,c:[b.getChannelData(0).slice()]}),unpack=o=>{const b=AC().createBuffer(1,o.c[0].length,o.sr);b.copyToChannel(o.c[0],0);return b};
+function splice(base,at,nb){const sr=base.sampleRate,n=Math.min(base.length,Math.round(at*sr)),o=AC().createBuffer(1,n+nb.length,sr),d=o.getChannelData(0);d.set(base.getChannelData(0).subarray(0,n));d.set(nb.getChannelData(0),n);return o}
+/* storage */
+const idb=new Promise(r=>{try{const q=indexedDB.open("pss",1);q.onupgradeneeded=()=>q.result.createObjectStore("kv");q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+const kv=async(m,k,v)=>{const d=await idb;if(!d)return;return new Promise(r=>{try{const s=d.transaction("kv","readwrite").objectStore("kv"),q=m=="get"?s.get(k):m=="set"?s.put(v,k):s.delete(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()}catch(e){r()}})};
+const getCustomMid=()=>SESS.cst.a.slice(1,-1).map((s,idx)=>({t:s.t,g:s.g,p:P.cst[idx+1]??s.p,x:ov["cst:"+(idx+1)]??s.x}));
+const saveMeta=()=>{clearTimeout(saveT);saveT=setTimeout(()=>kv("set","meta",{P,ov,tok,O,customParts:getCustomMid(),customTitle}),400)};
+function setRec(i,b){const s=S[i];if(s.sh){for(const k in SESS)R[k][s.sh=="intro"?0:SESS[k].a.length-1]=b}else recs[i]=b;const id="r:"+pid(i);b?kv("set",id,pack(b)):kv("del",id)}
+function inval(){mixBuf=mp3Blob=null;for(const i of["mixPlay","dl","pk"])$(i).disabled=true;$("done").hidden=true}
+/* custom session helpers */
+function updateCustomMetaTitle(val){
+  customTitle=val.trim();
+  SESS.cst.n=customTitle||"Custom session (your script or audio)";
+  SESS.cst.f=slugify(customTitle||"custom-session");
+  const opt=$("sess").querySelector('option[value="cst"]');
+  if(opt)opt.textContent=SESS.cst.n;
+  inval();saveMeta();
+}
+function isPristineCustom(){
+  const mid=SESS.cst.a.slice(1,-1);
+  return mid.length===1&&!R.cst[1]&&!(ov["cst:1"]??mid[0].x).trim()&&mid[0].t==="Custom part 1";
+}
+async function rebuildCustomParts(midList,recList,pauseList,ovList){
+  const oldLen=SESS.cst.a.length;
+  for(let i=1;i<oldLen-1;i++){delete ov["cst:"+i];await kv("del","r:cst:"+i)}
+  const introRec=R.cst[0],outroRec=R.cst[oldLen-1],introP=P.cst[0],outroP=P.cst[oldLen-1];
+  SESS.cst.a=[INTRO,...midList,OUTRO];
+  R.cst=[introRec,...recList,outroRec];
+  P.cst=[introP,...pauseList,outroP];
+  for(let i=0;i<midList.length;i++){
+    if(ovList&&ovList[i]!==undefined&&ovList[i]!==midList[i].x)ov["cst:"+(i+1)]=ovList[i];
+    if(recList[i])await kv("set","r:cst:"+(i+1),pack(recList[i]));
+  }
+  if(key==="cst"){S=SESS.cst.a;recs=R.cst;pauses=P.cst}
+  inval();saveMeta();
+}
+function parseCustomScript(raw,mode){
+  const txt=raw.replace(/\r\n/g,"\n").trim();
+  if(!txt)return[];
+  if(mode==="single")return[{t:"Custom script",g:"Read aloud with the teleprompter, edit, or upload audio.",p:O.gap||3,x:txt}];
+  if(mode==="paragraphs"){
+    const ps=txt.split(/\n{2,}/).map(s=>s.trim()).filter(Boolean);
+    return ps.map((p,i)=>({t:"Part "+(i+1),g:"Custom script part.",p:O.gap||3,x:p}));
+  }
+  const lines=txt.split("\n"),parts=[];
+  let curT="",buf=[];
+  const flush=()=>{const body=buf.join("\n").trim();if(body||curT)parts.push({t:curT||("Part "+(parts.length+1)),g:"Custom script part.",p:O.gap||3,x:body});curT="";buf=[]};
+  const headRe=/^(?:#{1,3}\s+|(?:part|section|chapter)\s*\d+\s*[:.\-–—]\s*)(.+)$/i;
+  for(const line of lines){
+    const tr=line.trim();
+    if(/^---+$/.test(tr)){flush();continue}
+    const m=tr.match(headRe);
+    if(m){flush();curT=m[1].trim()}
+    else buf.push(line);
+  }
+  flush();
+  if(parts.length<=1){
+    const ps=txt.split(/\n{2,}/).map(s=>s.trim()).filter(Boolean);
+    if(ps.length>1)return ps.map((p,i)=>({t:"Part "+(i+1),g:"Custom script part.",p:O.gap||3,x:p}));
+  }
+  return parts;
+}
+async function loadCustomScriptText(raw,append){
+  const parts=parseCustomScript(raw,$("splitMode").value);
+  const st=$("cstStat");
+  if(!parts.length){st.textContent="No script text found to import.";st.className="stat err";return}
+  const useAppend=append&&!isPristineCustom();
+  const baseMid=useAppend?SESS.cst.a.slice(1,-1):[];
+  const baseRecs=useAppend?R.cst.slice(1,-1):[];
+  const basePauses=useAppend?P.cst.slice(1,-1):[];
+  const baseOvs=useAppend?baseMid.map((_,i)=>ov["cst:"+(i+1)]):[];
+  await rebuildCustomParts(
+    [...baseMid,...parts],
+    [...baseRecs,...parts.map(()=>null)],
+    [...basePauses,...parts.map(p=>p.p)],
+    [...baseOvs,...parts.map(()=>undefined)]
+  );
+  cur=useAppend?baseMid.length+1:1;editing=false;pp=0;
+  st.textContent=`Loaded ${parts.length} script part${parts.length>1?"s":""}.`;st.className="stat";
+  render();
+}
+async function decodeAudioFile(file){
+  const c=AC();await c.resume();
+  const buf=await c.decodeAudioData(await file.arrayBuffer());
+  return mono(buf);
+}
+async function importBatchAudio(files){
+  const list=Array.from(files||[]);if(!list.length)return;
+  const st=$("cstStat");st.className="stat";st.textContent="Decoding audio files…";
+  const newMid=[],newRecs=[],newPauses=[];
+  for(const f of list){
+    try{
+      const b=await decodeAudioFile(f);
+      const name=f.name.replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim()||("Audio "+(newMid.length+1));
+      newMid.push({t:name,g:"Audio-only part. Adjust silence after or combine directly.",p:O.gap||4,x:""});
+      newRecs.push(b);newPauses.push(O.gap||4);
+    }catch(e){
+      st.textContent=`Could not decode "${f.name}". Try MP3, WAV, M4A, or OGG.`;st.className="stat err";return;
+    }
+  }
+  const keepExisting=!isPristineCustom();
+  const baseMid=keepExisting?SESS.cst.a.slice(1,-1):[];
+  const baseRecs=keepExisting?R.cst.slice(1,-1):[];
+  const basePauses=keepExisting?P.cst.slice(1,-1):[];
+  const baseOvs=keepExisting?baseMid.map((_,i)=>ov["cst:"+(i+1)]):[];
+  await rebuildCustomParts(
+    [...baseMid,...newMid],
+    [...baseRecs,...newRecs],
+    [...basePauses,...newPauses],
+    [...baseOvs,...newMid.map(()=>undefined)]
+  );
+  cur=keepExisting?baseMid.length+1:1;editing=false;pp=0;
+  st.textContent=`Added ${newMid.length} audio file${newMid.length>1?"s":""} to combine.`;st.className="stat";
+  render();
+}
+async function addCustomPart(withScript){
+  const mid=SESS.cst.a.slice(1,-1),recMid=R.cst.slice(1,-1),pMid=P.cst.slice(1,-1),ovMid=mid.map((_,i)=>ov["cst:"+(i+1)]);
+  const n=mid.length+1;
+  mid.push({t:"Part "+n,g:withScript?"Write or edit your script, then record or upload audio.":"Audio-only part. Record freely or upload an audio file.",p:O.gap||3,x:withScript?"Write your script here…":""});
+  recMid.push(null);pMid.push(O.gap||3);ovMid.push(undefined);
+  await rebuildCustomParts(mid,recMid,pMid,ovMid);
+  cur=mid.length;editing=!!withScript;pp=0;render();
+}
+async function deleteCustomPart(idx){
+  const mid=SESS.cst.a.slice(1,-1);if(mid.length<=1)return;
+  const mIdx=idx-1,recMid=R.cst.slice(1,-1),pMid=P.cst.slice(1,-1),ovMid=mid.map((_,i)=>ov["cst:"+(i+1)]);
+  mid.splice(mIdx,1);recMid.splice(mIdx,1);pMid.splice(mIdx,1);ovMid.splice(mIdx,1);
+  await rebuildCustomParts(mid,recMid,pMid,ovMid);
+  cur=Math.min(idx,SESS.cst.a.length-2);editing=false;pp=0;render();
+}
+async function moveCustomPart(idx,dir){
+  const mid=SESS.cst.a.slice(1,-1),mIdx=idx-1,to=mIdx+dir;
+  if(to<0||to>=mid.length)return;
+  const recMid=R.cst.slice(1,-1),pMid=P.cst.slice(1,-1),ovMid=mid.map((_,i)=>ov["cst:"+(i+1)]);
+  for(const arr of[mid,recMid,pMid,ovMid]){const tmp=arr[mIdx];arr[mIdx]=arr[to];arr[to]=tmp}
+  await rebuildCustomParts(mid,recMid,pMid,ovMid);
+  cur=to+1;editing=false;pp=0;render();
+}
+/* playback */
+function stopPlay(){if(src){try{src.onended=null;src.stop()}catch(e){}src=null}if(curBtn){curBtn.textContent=curLabel;curBtn=null}}
+function play(buf,btn,label,off){stopPlay();const c=AC();c.resume();src=c.createBufferSource();src.buffer=buf;src.connect(c.destination);curBtn=btn;curLabel=label;btn.textContent="Stop";src.onended=()=>{src=null;btn.textContent=label;curBtn=null};src.start(0,off||0)}
+/* UI */
+function estLen(){let t=0;S.forEach((s,i)=>{if(s.opt&&!recs[i])return;const x=fill(getX(i));t+=recs[i]?recs[i].duration:words(x.replace(/\[pause\]/g,""))/2+(x.match(/\[pause\]/g)||[]).length*O.cl;if(i<S.length-1)t+=pauses[i]});return t}
+function dots(){$("dots").innerHTML=S.map((s,i)=>`<button class="dot ${i==cur?"on":""} ${recs[i]?"done":""}" data-go="${i}" role="tab">${i+1}. ${esc(s.t)}</button>`).join("")}
+function render(){
+  $("customPanel").hidden=key!=="cst";
+  const s=S[cur],r=recs[cur],rawX=getX(cur),x=fill(rawX),hasText=!!x.trim(),isCustomMid=key==="cst"&&!s.sh;
+  const paras=x.split(/\n\n/).map(p=>`<p>${esc(p).replace(/\[pause\]/g,'<span class="cue">pause</span>')}</p>`).join("");
+  const scr=editing?`<textarea id="ed" rows="12" placeholder="Write or paste your script for this part…">${esc(rawX)}</textarea><div class="row" style="margin-top:8px"><button class="btn main" id="sv">Save script</button><button class="btn" id="rs">Reset to default</button><span class="tip" style="margin:0 4px">Insert:</span><button class="btn" data-tk="{client name}">client name</button><button class="btn" data-tk="{goal}">goal</button><button class="btn" data-tk="{anchor word}">anchor word</button><button class="btn" data-tk="[pause]">pause</button></div>`
+   :recOn?(hasText?`<div class="telewrap"><div class="script tele" id="scr">${paras}</div><div class="mark"></div></div>`:`<div class="script empty-scr">Audio-only recording in progress — speak naturally and click Stop recording when finished.</div>`)
+   :(hasText?`<div class="script">${paras}</div>`:`<div class="script empty-scr">No written script on this part (audio-only mode). Click <strong>Record this part</strong> to speak freely, <strong>Upload audio</strong> to import a file, or <strong>Edit script</strong> to add text.</div>`);
+  const pu=r&&!recOn?`<div class="punch"><label class="p">Punch point <input type="range" id="pp" min="0" max="${r.duration.toFixed(1)}" step="0.1" value="${Math.min(pp,r.duration).toFixed(1)}" style="flex:1"> <span id="ppv">${Math.min(pp,r.duration).toFixed(1)} s</span></label><div class="row" style="margin-top:8px"><button class="btn" id="pf">Play from here</button><button class="btn" id="punch">Re-record from here</button><button class="btn" id="polb">Hear with voice polish</button></div></div>`:"";
+  const cBar=isCustomMid&&!recOn?`<div class="cpartbar norec"><label class="p" style="flex:1 1 200px">Part title <input type="text" id="partTitle" value="${esc(s.t)}"></label><button class="btn sm" id="mvUp" ${cur<=1?"disabled":""}>Move earlier</button><button class="btn sm" id="mvDn" ${cur>=S.length-2?"disabled":""}>Move later</button><button class="btn sm" id="delPart" ${S.length<=3?"disabled":""}>Remove part</button></div>`:"";
+  const off=editing||starting;
+  $("step").innerHTML=`<h2 class="ph">Part ${cur+1} of ${S.length}: ${esc(s.t)}${s.opt?" (optional)":""}</h2><p class="goal norec">${esc(s.g)}</p>${cBar}
+  <div class="sticky"><div class="recbar"><button class="btn ${recOn?"rec":"main"}" id="recBtn" ${editing?"disabled":""}>${recOn?"Stop recording":r?"Record again":"Record this part"}</button><div class="meter" aria-hidden="true"><i id="lvl"></i></div></div>
+  <div class="info"><span class="stat" id="st">${r?"Recorded / loaded, "+dur(r):"Not recorded yet."}</span><span class="stat" id="hint"></span><span class="cdn" id="cd" aria-live="polite"></span></div></div>
+  ${scr}
+  <div class="row norec"><button class="btn" id="seqBtn" ${recOn||off?"disabled":""}>Record all in sequence</button>
+  <label class="btn" style="display:inline-block;${recOn||off?"opacity:.45;pointer-events:none":""}">Upload audio<input type="file" id="partAudio" accept="audio/*" class="sr-only" ${recOn||off?"disabled":""}></label>
+  <button class="btn" id="play" ${r&&!recOn?"":"disabled"}>Play audio</button><button class="btn" id="del" ${r&&!recOn?"":"disabled"}>Clear audio</button>
+  <button class="btn" id="edit" ${recOn?"disabled":""}>${editing?"Close editor":hasText?"Edit script":"Add script"}</button></div>
+  <div class="row" style="margin-top:12px"><label class="p norec">Silence after this part <input type="number" id="pz" min="0" max="120" value="${pauses[cur]}"> sec</label>
+  <label class="p">Teleprompter speed <input type="range" id="spd" data-o="spd" min="10" max="120" value="${O.spd}"></label>
+  <label class="p norec">Pause cue <input type="number" id="cl" data-o="cl" min="1" max="30" value="${O.cl}"> sec</label></div><div class="norec">${pu}
+  <div class="nav"><button class="btn" id="prev" ${cur&&!recOn?"":"disabled"}>Previous part</button><button class="btn" id="next" ${cur<S.length-1&&!recOn?"":"disabled"}>Next part</button></div></div>`;
+  const was=document.body.classList.contains("rec");recClass();if(!was&&document.body.classList.contains("rec"))window.scrollTo(0,0);
+  dots();mixInfo();
+}
+const recClass=()=>document.body.classList.toggle("rec",recOn||starting||seq);
+function mixInfo(){
+  const req=S.map((s,i)=>[s,i]).filter(a=>!a[0].opt),n=req.filter(a=>recs[a[1]]).length,miss=req.filter(a=>!recs[a[1]]).map(a=>a[0].t);
+  $("mixInfo").innerHTML=`${n} of ${req.length} parts ready. Estimated length: about ${fmt(estLen())}. Your optional intro and outro are included if recorded.`+(miss.length?`<ul class="miss">${miss.map(m=>`<li>${esc(m)}</li>`).join("")}</ul>`:" Ready to combine.");
+  $("build").disabled=!recs.some(Boolean);$("rp").style.strokeDashoffset=113.1*(1-n/req.length);$("rt").textContent=n+"/"+req.length;
+}
+const stat=(m,err)=>{const e=$("st");if(e){e.textContent=m;e.className="stat"+(err?" err":"")}};
+/* recording */
+async function toggleRec(at){
+  if(recOn&&mr&&mr.state=="recording"){mr.stop();return}
+  if(starting){cancelReq=true;return}
+  stopPlay();starting=true;cancelReq=false;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false}})}
+  catch(e){starting=false;seq=false;stat("Microphone access was blocked. Allow the microphone for this page, then try again.",1);return}
+  const c=AC();await c.resume();
+  const an=c.createAnalyser();an.fftSize=512;c.createMediaStreamSource(stream).connect(an);
+  const d=new Uint8Array(an.fftSize),idx=cur,base=at!=null?recs[idx]:null,auto=at==null;
+  recOn=true;render();
+  for(let n=3;n>0&&!cancelReq;n--){$("cd").textContent="Starting in "+n+"…";await sleep(1000)}
+  if(cancelReq){stream.getTracks().forEach(t=>t.stop());starting=recOn=cancelReq=seq=false;render();return}
+  let ch=[],t0=Date.now(),pk=0,clipUntil=0,lastH="",hold=0,endAt=0,lastT=performance.now(),pos=0,vel=1;const done=new Set();
+  mr=new MediaRecorder(stream);
+  mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  mr.onstop=async()=>{
+    cancelAnimationFrame(raf);clearInterval(tm);stream.getTracks().forEach(t=>t.stop());mr=null;recOn=starting=false;let ok=0;
+    try{let nb=mono(await c.decodeAudioData(await new Blob(ch).arrayBuffer()));if(base)nb=splice(base,at,nb);setRec(idx,nb);inval();ok=1}catch(e){}
+    render();
+    if(ok)stat("Recorded, "+dur(recs[idx])+". Peak "+(20*Math.log10(pk||1e-4)).toFixed(0)+" dB.");else stat("That recording couldn’t be read. Please try again.",1);
+    if(seq&&ok&&cur<S.length-1){cur++;render();await sleep(900);toggleRec()}else{seq=false;recClass()}
+  };
+  mr.start();starting=false;
+  const tele=now=>{const sc=$("scr");if(!sc)return;const dt=Math.min(.1,(now-lastT)/1000);lastT=now;const cd=$("cd");
+    if(now<hold)cd.textContent="Silence: "+Math.ceil((hold-now)/1000)+" s";
+    else{cd.textContent="";const mk=sc.scrollTop+sc.clientHeight*.35;
+      for(const q of sc.querySelectorAll(".cue"))if(!done.has(q)&&q.offsetTop<=mk){done.add(q);q.style.background="var(--accent)";q.style.color="var(--onaccent)";hold=now+O.cl*1000;break}}
+    vel+=((now<hold?0:1)-vel)*Math.min(1,dt*8);
+    if(Math.abs(sc.scrollTop-pos)>3)pos=sc.scrollTop;pos+=O.spd*dt*vel;sc.scrollTop=pos;
+    if(seq&&sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2){if(!endAt)endAt=now+2500;else if(now>endAt)mr.stop()}};
+  (function loop(now){an.getByteTimeDomainData(d);let m=0;for(const v of d)m=Math.max(m,Math.abs(v-128)/128);pk=Math.max(pk,m);
+    const l=$("lvl");if(l){l.style.width=Math.min(100,m*160)+"%";l.style.background=m>.92?"var(--rec)":"var(--accent)"}
+    if(m>.92)clipUntil=Date.now()+1500;
+    const h=Date.now()<clipUntil?"Too loud: back off the mic.":pk<.1&&Date.now()-t0>4000?"Very quiet: move closer to the mic.":pk>.25?"Level looks good.":"";
+    if(h!=lastH){lastH=h;const e=$("hint");if(e)e.textContent=h}
+    if(auto)tele(now);raf=requestAnimationFrame(loop)})(performance.now());
+  tm=setInterval(()=>stat("Recording… "+((Date.now()-t0)/1000).toFixed(0)+" s"),500);
+}
+const nav=()=>{stopPlay();editing=false;pp=0;render()};
+function switchSession(newKey){
+  if(recOn||starting){$("sess").value=key;return}
+  stopPlay();key=newKey;$("sess").value=key;S=SESS[key].a;recs=R[key];pauses=P[key];
+  cur=key==="cst"&&S.length>2?1:0;editing=false;pp=0;inval();$("mixStat").textContent="";render();
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button");if(!t)return;const id=t.id,busy=recOn||starting;
+  if(t.dataset.go!==undefined){if(busy)return;cur=+t.dataset.go;nav()}
+  else if(id=="goCustom")switchSession("cst")
+  else if(id=="recBtn"){if(recOn)seq=false;toggleRec()}
+  else if(id=="seqBtn"){seq=true;toggleRec()}
+  else if(id=="prev"&&!busy){cur--;nav()}else if(id=="next"&&!busy){cur++;nav()}
+  else if(id=="del"){setRec(cur,null);inval();stopPlay();render()}
+  else if(id=="play"){if(src)stopPlay();else play(recs[cur],t,"Play audio")}
+  else if(id=="pf")play(recs[cur],t,"Play from here",pp)
+  else if(id=="punch")toggleRec(pp)
+  else if(id=="polb"){t.textContent="Processing…";play(await polish(recs[cur]),t,"Hear with voice polish")}
+  else if(id=="edit"){editing=!editing;render()}
+  else if(id=="sv"){ov[pid(cur)]=$("ed").value;saveMeta();editing=false;inval();render()}
+  else if(id=="rs"){delete ov[pid(cur)];saveMeta();editing=false;render()}
+  else if(t.dataset.tk!==undefined){const a=$("ed");a.setRangeText(t.dataset.tk,a.selectionStart,a.selectionEnd,"end");a.focus()}
+  else if(id=="theme")theme()
+  else if(id=="bpv")bedPreview(t)
+  else if(id=="togglePaste"){$("pasteWrap").hidden=!$("pasteWrap").hidden;if(!$("pasteWrap").hidden)$("pasteBox").focus()}
+  else if(id=="applyPaste")await loadCustomScriptText($("pasteBox").value,$("appendMode").checked)
+  else if(id=="cstAddScript")await addCustomPart(true)
+  else if(id=="cstAddAudioOnly")await addCustomPart(false)
+  else if(id=="mvUp")await moveCustomPart(cur,-1)
+  else if(id=="mvDn")await moveCustomPart(cur,1)
+  else if(id=="delPart")await deleteCustomPart(cur)
+  else if(id=="clearCustom"){
+    if(busy)return;
+    const def=DEFAULT_CST();
+    await rebuildCustomParts(def,[null],[def[0].p],[undefined]);
+    updateCustomMetaTitle("");$("cstTitle").value="";$("pasteBox").value="";
+    cur=1;editing=false;pp=0;$("cstStat").textContent="Custom session reset.";$("cstStat").className="stat";render();
+  }
+});
+document.addEventListener("input",e=>{const t=e.target;
+  if(t.id=="pz"){pauses[cur]=Math.max(0,+t.value||0);inval();saveMeta();mixInfo()}
+  else if(t.id=="pp"){pp=+t.value;$("ppv").textContent=pp.toFixed(1)+" s"}
+  else if(t.id=="cstTitle"){updateCustomMetaTitle(t.value)}
+  else if(t.id=="partTitle"&&key==="cst"&&!S[cur].sh){S[cur].t=t.value.trim()||("Part "+cur);dots();saveMeta();inval()}
+  else if(t.dataset.o!==undefined){const k=t.dataset.o;O[k]=t.type=="checkbox"?t.checked:(t.type=="number"||t.type=="range")?+t.value:t.value;if(k!="spd"&&k!="cl"&&k!="bv")inval();saveMeta()}
+  else if(t.dataset.t!==undefined){tok[t.dataset.t]=t.value;saveMeta();inval();if(!recOn&&!starting&&!editing)render()}
+  else if(t.id=="lg"&&t.files[0]){const f=new FileReader();f.onload=()=>{setLogo(f.result);kv("set","logo",f.result)};f.readAsDataURL(t.files[0])}
+});
+document.addEventListener("change",async e=>{const t=e.target;
+  if(t.id=="scrFile"&&t.files[0]){
+    const text=await t.files[0].text();
+    $("pasteBox").value=text;$("pasteWrap").hidden=false;
+    await loadCustomScriptText(text,$("appendMode").checked);
+    t.value="";
+  }else if(t.id=="batchAudio"&&t.files.length){
+    await importBatchAudio(t.files);t.value="";
+  }else if(t.id=="partAudio"&&t.files[0]){
+    try{
+      stat("Decoding audio file…");
+      const b=await decodeAudioFile(t.files[0]);
+      setRec(cur,b);inval();render();
+      stat(`Loaded "${t.files[0].name}", ${dur(b)}.`);
+    }catch(err){
+      stat("Could not decode that audio file. Try MP3, WAV, M4A, or OGG.",1);
+    }
+    t.value="";
+  }
+});
+function setLogo(u){const i=new Image();i.onload=()=>{logoImg=i;$("lgp").src=u;$("lgp").hidden=false};i.src=u}
+function theme(){const h=document.documentElement,n={"":"light",light:"dark",dark:""}[h.dataset.theme||""];n?h.dataset.theme=n:delete h.dataset.theme;try{localStorage.setItem("pss-theme",n)}catch(e){}$("theme").textContent="Theme: "+(n||"auto")}
+/* audio processing */
+async function polish(b){const sr=b.sampleRate,o=new OfflineAudioContext(1,b.length+sr,sr),s=o.createBufferSource();s.buffer=b;
+  const hp=o.createBiquadFilter();hp.type="highpass";hp.frequency.value=80;const ls=o.createBiquadFilter();ls.type="lowshelf";ls.frequency.value=220;ls.gain.value=2.5;
+  const cv=o.createConvolver(),ir=o.createBuffer(1,Math.floor(sr*1.2),sr),d=ir.getChannelData(0);let e=0;
+  for(let k=0;k<d.length;k++){d[k]=(Math.random()*2-1)*Math.pow(1-k/d.length,3);e+=d[k]*d[k]}for(let k=0;k<d.length;k++)d[k]/=Math.sqrt(e);
+  cv.buffer=ir;const w=o.createGain();w.gain.value=.25;s.connect(hp);hp.connect(ls);ls.connect(o.destination);ls.connect(cv);cv.connect(w);w.connect(o.destination);s.start();return o.startRendering()}
+function prep(b){const d=b.getChannelData(0),sr=b.sampleRate,th=.012;let a=0,z=d.length-1;while(a<z&&Math.abs(d[a])<th)a++;while(z>a&&Math.abs(d[z])<th)z--;
+  a=Math.max(0,a-Math.floor(.15*sr));z=Math.min(d.length,z+Math.floor(.25*sr));const x=d.slice(a,z);let ss=0,pk=0,n=0;
+  for(const v of x){if(Math.abs(v)>th){ss+=v*v;n++}pk=Math.max(pk,Math.abs(v))}
+  const g=Math.min(.11/(Math.sqrt(ss/(n||1))||.05),.95/(pk||1),8),f=Math.min(x.length>>1,Math.floor(.04*sr));
+  for(let k=0;k<x.length;k++){x[k]*=g;if(k<f)x[k]*=k/f;if(k>=x.length-f)x[k]*=(x.length-k)/f}return x}
+function genBed(t,sr){let n=0,a=0,b=0;const P2=2*Math.PI,ch=[110,164.81,220,277.18,329.63];
+  return()=>{n++;const s=n/sr;let o=0;
+    if(t=="pad"){for(let i=0;i<5;i++)o+=Math.sin(P2*ch[i]*s+i)*(.5+.5*Math.sin(P2*(.05+.013*i)*s+i))*(.22-i*.02);return o*.5}
+    if(t=="drone")return(Math.sin(P2*144*s)*.5+Math.sin(P2*72*s)*.4+Math.sin(P2*216*s)*.15)*(.85+.15*Math.sin(P2*.08*s))*.55;
+    const w=Math.random()*2-1;
+    if(t=="rain"){a+=(w-a)*.5;b+=(a-b)*.5;return(w-b)*.28*(Math.random()<.0004?3:1)}
+    a+=(w-a)*.02;b+=(a-b)*.05;return b*12*(.6+.4*Math.sin(P2*s/9-1))}}
+function bedPreview(btn){const t=$("bed").value;if(t=="none"){$("mixStat").textContent="Choose a background first.";return}
+  const sr=44100,g=genBed(t,sr),b=AC().createBuffer(1,sr*8,sr),d=b.getChannelData(0);for(let k=0;k<d.length;k++)d[k]=g()*O.bv*Math.min(1,k/sr);play(b,btn,"Preview background")}
+/* ID3, zip, pdf, cover */
+const enc=new TextEncoder(),U=a=>Uint8Array.from(a),cat=(...a)=>{const o=new Uint8Array(a.reduce((s,x)=>s+x.length,0));let p=0;for(const x of a){o.set(x,p);p+=x.length}return o};
+const ss=n=>[n>>21&127,n>>14&127,n>>7&127,n&127],u32=n=>[n>>>24&255,n>>>16&255,n>>>8&255,n&255],fr=(id,d)=>cat(enc.encode(id),U(ss(d.length)),U([0,0]),d),tx=(id,s)=>fr(id,cat(U([3]),enc.encode(s)));
+function id3(o){const f=[tx("TIT2",o.title),tx("TPE1",o.artist),tx("TALB",o.album)];
+  if(o.art)f.push(fr("APIC",cat(U([3]),enc.encode("image/png"),U([0,3,0]),o.art)));
+  o.ch.forEach((c,i)=>f.push(fr("CHAP",cat(enc.encode("ch"+i),U([0]),U(u32(c.s)),U(u32(c.e)),U(u32(0xFFFFFFFF)),U(u32(0xFFFFFFFF)),tx("TIT2",c.t)))));
+  if(o.ch.length)f.push(fr("CTOC",cat(enc.encode("toc"),U([0,3,o.ch.length]),...o.ch.map((c,i)=>cat(enc.encode("ch"+i),U([0]))))));
+  const b=cat(...f);return cat(enc.encode("ID3"),U([4,0,0]),U(ss(b.length)),b)}
+const sessionDisplayName=()=>key==="cst"?(customTitle||"Custom session"):SESS[key].n;
+async function cover(){const c=document.createElement("canvas");c.width=c.height=600;const x=c.getContext("2d"),g=x.createLinearGradient(0,0,600,600);g.addColorStop(0,"#1d3b35");g.addColorStop(1,"#2f6b5a");x.fillStyle=g;x.fillRect(0,0,600,600);
+  if(logoImg)try{const r=Math.min(160/logoImg.width,160/logoImg.height);x.drawImage(logoImg,300-logoImg.width*r/2,70,logoImg.width*r,logoImg.height*r)}catch(e){}
+  x.fillStyle="#fff";x.textAlign="center";x.font="500 40px Georgia,serif";x.fillText(sessionDisplayName(),300,340,540);x.font="400 26px Georgia,serif";x.fillText(tok.prac||"",300,520,540);
+  return new Uint8Array(await(await new Promise(r=>c.toBlob(r,"image/png"))).arrayBuffer())}
+function crc32(u){let c,t=crc32.t||(crc32.t=Array.from({length:256},(_,n)=>{c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(let i=0;i<u.length;i++)r=t[(r^u[i])&255]^(r>>>8);return(r^-1)>>>0}
+function zipN(files){const h=(sz,f)=>{const a=new DataView(new ArrayBuffer(sz));f(a);return new Uint8Array(a.buffer)},P3=[],C=[];let off=0;
+  for(const f of files){const nb=enc.encode(f.name),crc=crc32(f.u),n=f.u.length;
+    P3.push(h(30,a=>{a.setUint32(0,0x04034b50,true);a.setUint16(4,20,true);a.setUint16(6,0x800,true);a.setUint32(14,crc,true);a.setUint32(18,n,true);a.setUint32(22,n,true);a.setUint16(26,nb.length,true)}),nb,f.u);
+    C.push(h(46,a=>{a.setUint32(0,0x02014b50,true);a.setUint16(4,20,true);a.setUint16(6,20,true);a.setUint16(8,0x800,true);a.setUint32(16,crc,true);a.setUint32(20,n,true);a.setUint32(24,n,true);a.setUint16(28,nb.length,true);a.setUint32(42,off,true)}),nb);off+=30+nb.length+n}
+  const cl=C.reduce((s,x)=>s+x.length,0);return new Blob([...P3,...C,h(22,a=>{a.setUint32(0,0x06054b50,true);a.setUint16(8,files.length,true);a.setUint16(10,files.length,true);a.setUint32(12,cl,true);a.setUint32(16,off,true)})],{type:"application/zip"})}
+function mkPdf(title,sub,blocks){const {jsPDF}=window.jspdf,d=new jsPDF({unit:"pt",format:"letter"}),W=d.internal.pageSize.getWidth(),H=d.internal.pageSize.getHeight(),m=56;let y=m+10;
+  const asc=t=>t.replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/…/g,"...").replace(/[–—]/g,"-"),
+  add=(t,sz,b,g)=>{d.setFont("times",b?"bold":"normal");d.setFontSize(sz);for(const l of d.splitTextToSize(asc(t),W-2*m)){if(y>H-m){d.addPage();y=m}d.text(l,m,y);y+=sz*1.45}y+=g};
+  add(title,22,1,2);add(sub,11,0,14);for(const[h,t]of blocks){add(h,14,1,2);add(t,12,0,12)}return new Uint8Array(d.output("arraybuffer"))}
+const who=()=>tok.prac||"your practitioner";
+const pdfScript=()=>mkPdf(sessionDisplayName()+": practitioner script","Prepared by "+(tok.prac||"practitioner")+(tok.client?" for "+tok.client:""),S.map((s,i)=>[(i+1)+". "+s.t,(fill(getX(i)).trim()||"(Audio-only part — no written script)").replace(/\[pause\]/g,"(pause)")]).filter((b,i)=>!S[i].opt||recs[i]));
+const pdfGuide=()=>mkPdf(sessionDisplayName()+": client guide","Prepared by "+(tok.prac||"your practitioner")+(tok.client?" for "+tok.client:""),[["Before you listen","Find a comfortable, quiet place where you can relax without interruption and silence your phone. Never listen while driving, operating machinery, or doing anything that needs your full attention."],["How to listen","Headphones are optional but can help. Simply listen and allow yourself to follow along. There is nothing to get right, and if your mind wanders that is perfectly fine. Gently return to the sound of the voice."],["If you fall asleep","This is normal, especially with relaxation and sleep sessions."],["When the session ends","Take a moment before you get up. Open your eyes, stretch, and take a slow breath. Wait until you feel fully alert before standing or driving."],["How often","Listen as often as "+who()+" recommends."],["Questions or concerns","If you feel unwell or have questions, stop listening and contact "+who()+" or a healthcare professional."]]);
+async function save(fn,data){let d=null;const st=$("mixStat");try{d=await claude.use("downloads")}catch(e){}
+  try{if(d){await d.save({filename:fn,data});st.textContent="Saved "+fn+". Unzip it to get your files."}else{const a=document.createElement("a");a.href=URL.createObjectURL(data);a.download=fn;a.click();st.textContent="Download started."}st.className="stat"}
+  catch(e){st.textContent=e&&e.code=="declined"?"Download cancelled.":"The download couldn’t be saved here. Try opening this page in a full browser tab.";st.className="stat err"}}
+/* build */
+$("build").onclick=async()=>{
+  stopPlay();const st=$("mixStat"),sr=44100,gap=Math.max(0,O.gap||0),bed=O.bed;$("build").disabled=true;st.className="stat";
+  try{
+  const parts=[];for(let i=0;i<S.length;i++){if(!recs[i])continue;st.textContent="Preparing "+S[i].t+"…";let b=recs[i];if(O.polc)b=await polish(b);parts.push({t:S[i].t,x:O.norm?prep(b):b.getChannelData(0).slice(),p:pauses[i]||gap})}
+  const lead=bed=="none"?0:3*sr,tail=bed=="none"?0:6*sr,total=lead+tail+parts.reduce((a,x,i)=>a+x.x.length+(i<parts.length-1?Math.round(x.p*sr):0),0),pcm=new Float32Array(total),ch=[];let o=lead;
+  parts.forEach((x,i)=>{pcm.set(x.x,o);const s0=o;o+=x.x.length;ch.push({t:x.t,s:Math.round(s0/sr*1000),e:Math.round(o/sr*1000)});if(i<parts.length-1)o+=Math.round(x.p*sr)});
+  if(bed!="none"){const g=genBed(bed,sr);let env=0,dg=1;for(let k=0;k<total;k++){const v=pcm[k];env=Math.max(Math.abs(v),env*.99996);dg+=((O.duck?1-.55*Math.min(1,env*7):1)-dg)*.0004;let f=1;if(k<lead)f=k/lead;if(k>total-tail)f=Math.min(f,(total-k)/tail);pcm[k]=v+g()*O.bv*dg*f}}
+  const fo=Math.floor(1.5*sr);for(let k=Math.max(0,total-fo);k<total;k++)pcm[k]*=(total-k)/fo;
+  mixBuf=AC().createBuffer(1,total,sr);mixBuf.copyToChannel(pcm,0);
+  const en=new lamejs.Mp3Encoder(1,sr,128),out=[],N=1152*40;
+  for(let k=0;k<total;k+=N){const sl=pcm.subarray(k,k+N),i16=new Int16Array(sl.length);for(let j=0;j<sl.length;j++){const v=Math.max(-1,Math.min(1,sl[j]));i16[j]=v<0?v*32768:v*32767}
+    const b=en.encodeBuffer(i16);if(b.length)out.push(b);st.textContent="Encoding MP3… "+Math.round(k/total*100)+"%";await sleep(0)}
+  const f=en.flush();if(f.length)out.push(f);
+  const tag=id3({title:sessionDisplayName(),artist:tok.prac||"Practitioner",album:"Hypnosis session",art:O.art?await cover():null,ch:O.art?ch:[]});
+  mp3Blob=new Blob([tag,...out],{type:"audio/mpeg"});
+  const m=Math.floor(total/sr/60),s=Math.round(total/sr%60);
+  st.textContent=`Session ready: ${m} min ${s} sec, ${(mp3Blob.size/1048576).toFixed(1)} MB.`;
+  $("mixPlay").disabled=$("dl").disabled=$("pk").disabled=false;
+  $("done").hidden=false;$("doneInfo").textContent=`${sessionDisplayName()}: ${m} min ${s} sec, ${parts.length} parts${bed!="none"?", with background "+bed:""}.`;
+  const cv=$("wf"),c=cv.getContext("2d"),w=cv.width=cv.clientWidth*(devicePixelRatio||1),h=cv.height=110*(devicePixelRatio||1),step=Math.max(1,Math.floor(total/w));
+  c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--accent");for(let x=0;x<w;x++){let mx=0;for(let k=x*step;k<(x+1)*step&&k<total;k+=8)mx=Math.max(mx,Math.abs(pcm[k]));const hh=Math.max(1,mx*h*.95);c.fillRect(x,(h-hh)/2,1,hh)}
+  }catch(e){st.textContent="Something went wrong while building. Try again.";st.className="stat err"}
+  $("build").disabled=false;
+};
+$("mixPlay").onclick=e=>{if(src)stopPlay();else play(mixBuf,e.target,"Play full session")};
+$("dl").onclick=async()=>save(SESS[key].f+".zip",zipN([{name:SESS[key].f+".mp3",u:new Uint8Array(await mp3Blob.arrayBuffer())}]));
+$("pk").onclick=async()=>{const fn=SESS[key].f;try{if(!window.jspdf)throw 0;save(fn+"-pack.zip",zipN([{name:fn+".mp3",u:new Uint8Array(await mp3Blob.arrayBuffer())},{name:fn+"-script.pdf",u:pdfScript()},{name:fn+"-client-guide.pdf",u:pdfGuide()}]))}catch(e){$("mixStat").textContent="The PDF tool didn’t load. Check your connection and try again.";$("mixStat").className="stat err"}};
+const sel=$("sess");sel.innerHTML=Object.keys(SESS).map(k=>`<option value="${k}">${SESS[k].n}</option>`).join("");
+sel.onchange=()=>switchSession(sel.value);
+(async()=>{try{const t=localStorage.getItem("pss-theme");if(t){document.documentElement.dataset.theme=t;$("theme").textContent="Theme: "+t}else $("theme").textContent="Theme: auto"}catch(e){$("theme").textContent="Theme: auto"}
+  if(matchMedia("(max-width:600px)").matches)["dp","db"].forEach(i=>$(i).open=false);
+  render();
+  const m=await kv("get","meta");
+  if(m){
+    if(Array.isArray(m.customParts)&&m.customParts.length){
+      SESS.cst.a=[INTRO,...m.customParts,OUTRO];
+      R.cst=SESS.cst.a.map(()=>null);
+      P.cst=SESS.cst.a.map(s=>s.p);
+    }
+    if(m.customTitle){updateCustomMetaTitle(m.customTitle);$("cstTitle").value=m.customTitle}
+    Object.assign(tok,m.tok||{});Object.assign(ov,m.ov||{});Object.assign(O,m.O||{});
+    for(const k in m.P||{})if(P[k]&&m.P[k].length==P[k].length)P[k]=m.P[k];
+  }
+  for(const k in O){const e=$(k);if(e){if(e.type=="checkbox")e.checked=O[k];else e.value=O[k]}}
+  document.querySelectorAll("[data-t]").forEach(e=>e.value=tok[e.dataset.t]);
+  const shared={};
+  for(const k in SESS)for(let i=0;i<SESS[k].a.length;i++){const sh=SESS[k].a[i].sh,id="r:"+pidk(k,i);let v=sh&&sh in shared?shared[sh]:await kv("get",id);if(sh)shared[sh]=v;if(v)R[k][i]=unpack(v)}
+  S=SESS[key].a;pauses=P[key];recs=R[key];const lg=await kv("get","logo");if(lg)setLogo(lg);render()})();
+</script>
+</body>
+</html>
