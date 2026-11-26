@@ -53,9 +53,15 @@ select{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:
 input[type=text],textarea{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0;width:100%}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.grid label.p{flex-direction:column;align-items:stretch}
 textarea{font:400 1rem/1.6 Newsreader,Georgia,serif;resize:vertical}
-.telewrap{position:relative}.tele{position:relative;font-size:1.7rem;line-height:1.7;max-height:46vh;overflow-y:auto;padding:16vh 0 40vh 18px}
+.telewrap{position:relative;margin-bottom:12px}.tele{position:relative;font-size:1.7rem;line-height:1.6;height:40vh;height:40dvh;max-height:none;overflow-y:auto;padding:14vh 0 30vh 16px;padding:14dvh 0 30dvh 16px;margin:0;overscroll-behavior:contain}
 .mark{position:absolute;left:0;right:0;top:35%;border-top:1px dashed var(--accent);opacity:.5;pointer-events:none}
-.cdn{font:500 1.6rem/1.2 Newsreader,Georgia,serif;color:var(--rec);min-height:1.2em;margin-top:10px}
+.cdn{font:500 1.15rem/1.2 Newsreader,Georgia,serif;color:var(--rec);margin:0}
+.sticky{position:sticky;top:0;z-index:5;background:var(--panel);padding:8px 0 6px;margin:0 0 10px;border-bottom:1px solid var(--line)}
+.recbar{display:flex;gap:10px;align-items:center}.recbar .btn{flex:0 0 auto;white-space:nowrap}.recbar .meter{height:14px;flex:1 1 auto;border-radius:7px;border:1px solid var(--line)}
+.info{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline;min-height:1.4em;margin-top:6px}.info .stat{margin:0;min-height:0;font-size:.82rem}.info #st{flex:1 1 auto}
+body.rec .norec{display:none!important}body.rec .wrap{padding-top:8px}body.rec h2.ph{font-size:1.05rem;margin-bottom:6px}body.rec #step{padding:10px 14px}
+details.card>summary{cursor:pointer;list-style:none}details.card>summary::-webkit-details-marker{display:none}details.card>summary h2{display:inline}details.card>summary::after{content:" ▾";color:var(--mute)}details.card[open]>summary{margin-bottom:6px}
+@media (max-width:600px){.wrap{padding:12px 12px 40px}h1{font-size:1.5rem}.lede{font-size:.9rem;margin-bottom:12px}.card{padding:14px;margin-bottom:12px}.tele{font-size:1.4rem}.btn{padding:8px 12px}.row{gap:8px}.dots{flex-wrap:nowrap;overflow-x:auto;margin-bottom:12px}.dot{flex:0 0 auto;white-space:nowrap}.nav{margin-top:14px;padding-top:12px}.goal{margin-bottom:10px}}
 .punch{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
 #wf{width:100%;height:110px;display:block}#lgp{height:40px;border-radius:6px}
 .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}.opts label.p{flex-wrap:wrap}
@@ -63,21 +69,21 @@ textarea{font:400 1rem/1.6 Newsreader,Georgia,serif;resize:vertical}
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div><h1>Practitioner Session Studio</h1>
+  <div class="top norec"><div><h1>Practitioner Session Studio</h1>
   <p class="lede">Choose a session, personalize it, then work through its parts. Read each part aloud (the teleprompter helps), record it in your own voice, then combine everything into one polished MP3 for your client.</p></div>
   <div class="ringbox"><svg viewBox="0 0 44 44" width="56" height="56" role="img" aria-label="Parts recorded"><circle r="18" cx="22" cy="22" fill="none" stroke="var(--line)" stroke-width="4"/><circle id="rp" r="18" cx="22" cy="22" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1" transform="rotate(-90 22 22)"/><text id="rt" x="22" y="25.5" text-anchor="middle" font-size="10" fill="currentColor">0/0</text></svg><button class="btn" id="theme">Theme</button></div></div>
 
-  <div class="card"><h2>Personalize</h2><p class="goal">Fills {client name}, {goal} and {anchor word} anywhere they appear in a script. Leave blank to use neutral wording.</p>
-  <div class="grid"><label class="p">Client name <input type="text" data-t="client"></label><label class="p">Goal <input type="text" data-t="goal" placeholder="e.g. a calm, clear mind"></label><label class="p">Anchor word <input type="text" data-t="anchor" placeholder="e.g. peace"></label></div></div>
+  <details class="card norec" id="dp" open><summary><h2>Personalize</h2></summary><p class="goal">Fills {client name}, {goal} and {anchor word} anywhere they appear in a script. Leave blank to use neutral wording.</p>
+  <div class="grid"><label class="p">Client name <input type="text" data-t="client"></label><label class="p">Goal <input type="text" data-t="goal" placeholder="e.g. a calm, clear mind"></label><label class="p">Anchor word <input type="text" data-t="anchor" placeholder="e.g. peace"></label></div></details>
 
-  <div class="row" style="margin-bottom:16px"><label class="p">Session <select id="sess"></select></label></div>
-  <div class="dots" id="dots" role="tablist" aria-label="Session parts"></div>
+  <div class="row norec" style="margin-bottom:12px"><label class="p">Session <select id="sess"></select></label></div>
+  <div class="dots norec" id="dots" role="tablist" aria-label="Session parts"></div>
   <div class="card" id="step"></div>
 
-  <div class="card"><h2>Your branding</h2><p class="goal">Used on the cover art, ID3 tags, PDFs, and in your optional intro and outro (recorded once, used in every session).</p>
-  <div class="row"><label class="p" style="flex:1 1 200px">Your name <input type="text" id="pr" data-t="prac"></label><label class="p">Logo <input type="file" id="lg" accept="image/*"></label><img id="lgp" alt="" hidden></div></div>
+  <details class="card norec" id="db" open><summary><h2>Your branding</h2></summary><p class="goal">Used on the cover art, ID3 tags, PDFs, and in your optional intro and outro (recorded once, used in every session).</p>
+  <div class="row"><label class="p" style="flex:1 1 200px">Your name <input type="text" id="pr" data-t="prac"></label><label class="p">Logo <input type="file" id="lg" accept="image/*"></label><img id="lgp" alt="" hidden></div></details>
 
-  <div class="card" id="mix">
+  <div class="card norec" id="mix">
     <h2>Combine into one session</h2>
     <p class="goal" id="mixInfo"></p>
     <div class="opts">
@@ -100,7 +106,7 @@ textarea{font:400 1rem/1.6 Newsreader,Georgia,serif;resize:vertical}
     <p class="tip">The session pack is a zip with the MP3, a script PDF and a client guide PDF. Recordings, scripts and settings save automatically in this browser; clearing site data removes them. Always screen clients for suitability before using hypnosis.</p>
   </div>
 
-  <div class="card" id="done" hidden><h2>Session complete</h2><p class="goal" id="doneInfo"></p><canvas id="wf" aria-label="Waveform of the finished session"></canvas></div>
+  <div class="card norec" id="done" hidden><h2>Session complete</h2><p class="goal" id="doneInfo"></p><canvas id="wf" aria-label="Waveform of the finished session"></canvas></div>
 </div>
 
 <script>
@@ -358,20 +364,21 @@ function render(){
    :recOn?`<div class="telewrap"><div class="script tele" id="scr">${paras}</div><div class="mark"></div></div>`:`<div class="script">${paras}</div>`;
   const pu=r&&!recOn?`<div class="punch"><label class="p">Punch point <input type="range" id="pp" min="0" max="${r.duration.toFixed(1)}" step="0.1" value="${Math.min(pp,r.duration).toFixed(1)}" style="flex:1"> <span id="ppv">${Math.min(pp,r.duration).toFixed(1)} s</span></label><div class="row" style="margin-top:8px"><button class="btn" id="pf">Play from here</button><button class="btn" id="punch">Re-record from here</button><button class="btn" id="polb">Hear with voice polish</button></div></div>`:"";
   const off=editing||starting;
-  $("step").innerHTML=`<h2>Part ${cur+1} of ${S.length}: ${esc(s.t)}${s.opt?" (optional)":""}</h2><p class="goal">${esc(s.g)}</p>${scr}
-  <div class="row"><button class="btn ${recOn?"rec":"main"}" id="recBtn" ${editing?"disabled":""}>${recOn?"Stop recording":r?"Record again":"Record this part"}</button>
-  <button class="btn" id="seqBtn" ${recOn||off?"disabled":""}>Record all in sequence</button>
+  $("step").innerHTML=`<h2 class="ph">Part ${cur+1} of ${S.length}: ${esc(s.t)}${s.opt?" (optional)":""}</h2><p class="goal norec">${esc(s.g)}</p>
+  <div class="sticky"><div class="recbar"><button class="btn ${recOn?"rec":"main"}" id="recBtn" ${editing?"disabled":""}>${recOn?"Stop recording":r?"Record again":"Record this part"}</button><div class="meter" aria-hidden="true"><i id="lvl"></i></div></div>
+  <div class="info"><span class="stat" id="st">${r?"Recorded, "+dur(r):"Not recorded yet."}</span><span class="stat" id="hint"></span><span class="cdn" id="cd" aria-live="polite"></span></div></div>
+  ${scr}
+  <div class="row norec"><button class="btn" id="seqBtn" ${recOn||off?"disabled":""}>Record all in sequence</button>
   <button class="btn" id="play" ${r&&!recOn?"":"disabled"}>Play recording</button><button class="btn" id="del" ${r&&!recOn?"":"disabled"}>Delete</button>
-  <button class="btn" id="edit" ${recOn?"disabled":""}>${editing?"Close editor":"Edit script"}</button>
-  <div class="meter" aria-hidden="true"><i id="lvl"></i></div></div>
-  <div class="stat" id="hint"></div><div class="cdn" id="cd" aria-live="polite"></div>
-  <div class="stat" id="st">${r?"Recorded, "+dur(r):"Not recorded yet. Record starts after a 3-2-1 countdown. Pause cues become a silence timer."}</div>
-  <div class="row" style="margin-top:14px"><label class="p">Silence after this part <input type="number" id="pz" min="0" max="120" value="${pauses[cur]}"> sec</label>
+  <button class="btn" id="edit" ${recOn?"disabled":""}>${editing?"Close editor":"Edit script"}</button></div>
+  <div class="row" style="margin-top:12px"><label class="p norec">Silence after this part <input type="number" id="pz" min="0" max="120" value="${pauses[cur]}"> sec</label>
   <label class="p">Teleprompter speed <input type="range" id="spd" data-o="spd" min="10" max="120" value="${O.spd}"></label>
-  <label class="p">Pause cue <input type="number" id="cl" data-o="cl" min="1" max="30" value="${O.cl}"> sec</label></div>${pu}
-  <div class="nav"><button class="btn" id="prev" ${cur&&!recOn?"":"disabled"}>Previous part</button><button class="btn" id="next" ${cur<S.length-1&&!recOn?"":"disabled"}>Next part</button></div>`;
+  <label class="p norec">Pause cue <input type="number" id="cl" data-o="cl" min="1" max="30" value="${O.cl}"> sec</label></div><div class="norec">${pu}
+  <div class="nav"><button class="btn" id="prev" ${cur&&!recOn?"":"disabled"}>Previous part</button><button class="btn" id="next" ${cur<S.length-1&&!recOn?"":"disabled"}>Next part</button></div></div>`;
+  const was=document.body.classList.contains("rec");recClass();if(!was&&document.body.classList.contains("rec"))window.scrollTo(0,0);
   dots();mixInfo();
 }
+const recClass=()=>document.body.classList.toggle("rec",recOn||starting||seq);
 function mixInfo(){
   const req=S.map((s,i)=>[s,i]).filter(a=>!a[0].opt),n=req.filter(a=>recs[a[1]]).length,miss=req.filter(a=>!recs[a[1]]).map(a=>a[0].t);
   $("mixInfo").innerHTML=`${n} of ${req.length} parts recorded. Estimated length: about ${fmt(estLen())}. Your optional intro and outro are included if recorded.`+(miss.length?`<ul class="miss">${miss.map(m=>`<li>${esc(m)}</li>`).join("")}</ul>`:" Ready to combine.");
@@ -399,7 +406,7 @@ async function toggleRec(at){
     try{let nb=mono(await c.decodeAudioData(await new Blob(ch).arrayBuffer()));if(base)nb=splice(base,at,nb);setRec(idx,nb);inval();ok=1}catch(e){}
     render();
     if(ok)stat("Recorded, "+dur(recs[idx])+". Peak "+(20*Math.log10(pk||1e-4)).toFixed(0)+" dB.");else stat("That recording couldn’t be read. Please try again.",1);
-    if(seq&&ok&&cur<S.length-1){cur++;render();await sleep(900);toggleRec()}else seq=false;
+    if(seq&&ok&&cur<S.length-1){cur++;render();await sleep(900);toggleRec()}else{seq=false;recClass()}
   };
   mr.start();starting=false;
   const tele=now=>{const sc=$("scr");if(!sc)return;const dt=Math.min(.1,(now-lastT)/1000);lastT=now;const cd=$("cd");
@@ -411,10 +418,10 @@ async function toggleRec(at){
   (function loop(now){an.getByteTimeDomainData(d);let m=0;for(const v of d)m=Math.max(m,Math.abs(v-128)/128);pk=Math.max(pk,m);
     const l=$("lvl");if(l){l.style.width=Math.min(100,m*160)+"%";l.style.background=m>.92?"var(--rec)":"var(--accent)"}
     if(m>.92)clipUntil=Date.now()+1500;
-    const h=Date.now()<clipUntil?"Too loud: back off the mic or lower the input level.":pk<.1&&Date.now()-t0>4000?"Very quiet: move closer to the mic.":pk>.25?"Level looks good.":"";
+    const h=Date.now()<clipUntil?"Too loud: back off the mic.":pk<.1&&Date.now()-t0>4000?"Very quiet: move closer to the mic.":pk>.25?"Level looks good.":"";
     if(h!=lastH){lastH=h;const e=$("hint");if(e)e.textContent=h}
     if(auto)tele(now);raf=requestAnimationFrame(loop)})(performance.now());
-  tm=setInterval(()=>stat("Recording… "+((Date.now()-t0)/1000).toFixed(0)+" sec. Press Stop when finished."),500);
+  tm=setInterval(()=>stat("Recording… "+((Date.now()-t0)/1000).toFixed(0)+" s"),500);
 }
 const nav=()=>{stopPlay();editing=false;pp=0;render()};
 document.addEventListener("click",async e=>{
@@ -523,6 +530,7 @@ $("pk").onclick=async()=>{const fn=SESS[key].f;try{if(!window.jspdf)throw 0;save
 const sel=$("sess");sel.innerHTML=Object.keys(SESS).map(k=>`<option value="${k}">${SESS[k].n}</option>`).join("");
 sel.onchange=()=>{if(recOn||starting){sel.value=key;return}stopPlay();key=sel.value;S=SESS[key].a;recs=R[key];pauses=P[key];cur=0;editing=false;pp=0;inval();$("mixStat").textContent="";render()};
 (async()=>{try{const t=localStorage.getItem("pss-theme");if(t){document.documentElement.dataset.theme=t;$("theme").textContent="Theme: "+t}else $("theme").textContent="Theme: auto"}catch(e){$("theme").textContent="Theme: auto"}
+  if(matchMedia("(max-width:600px)").matches)["dp","db"].forEach(i=>$(i).open=false);
   render();
   const m=await kv("get","meta");
   if(m){Object.assign(tok,m.tok||{});Object.assign(ov,m.ov||{});Object.assign(O,m.O||{});for(const k in m.P||{})if(P[k]&&m.P[k].length==P[k].length)P[k]=m.P[k]}
