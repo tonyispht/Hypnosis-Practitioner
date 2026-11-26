@@ -68,6 +68,10 @@ details.card>summary{cursor:pointer;list-style:none}details.card>summary::-webki
 .script:not(.tele){font-size:1.1rem;line-height:1.6;max-height:34vh;max-height:34dvh;overflow-y:auto;margin-bottom:12px;overscroll-behavior:contain}
 .tele{font-size:1.4rem}
 @media (max-width:600px){.script:not(.tele){font-size:1rem}.tele{font-size:1.2rem}}
+.info{flex-wrap:nowrap;height:1.6rem;min-height:0;overflow:hidden;align-items:center}
+.info .stat{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.info #st{flex:1 1 0}.info #hint{flex:0 1 auto}
+.info #cd{flex:0 0 auto;min-width:6.5em;text-align:right;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -401,7 +405,7 @@ async function toggleRec(at){
   recOn=true;render();
   for(let n=3;n>0&&!cancelReq;n--){$("cd").textContent="Starting in "+n+"…";await sleep(1000)}
   if(cancelReq){stream.getTracks().forEach(t=>t.stop());starting=recOn=cancelReq=seq=false;render();return}
-  let ch=[],t0=Date.now(),pk=0,clipUntil=0,lastH="",hold=0,endAt=0,lastT=performance.now(),pos=0;const done=new Set();
+  let ch=[],t0=Date.now(),pk=0,clipUntil=0,lastH="",hold=0,endAt=0,lastT=performance.now(),pos=0,vel=1;const done=new Set();
   mr=new MediaRecorder(stream);
   mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
   mr.onstop=async()=>{
@@ -413,10 +417,11 @@ async function toggleRec(at){
   };
   mr.start();starting=false;
   const tele=now=>{const sc=$("scr");if(!sc)return;const dt=Math.min(.1,(now-lastT)/1000);lastT=now;const cd=$("cd");
-    if(now<hold){cd.textContent="Silence: "+Math.ceil((hold-now)/1000)+" s";return}
-    cd.textContent="";const mk=sc.scrollTop+sc.clientHeight*.35;
-    for(const q of sc.querySelectorAll(".cue"))if(!done.has(q)&&q.offsetTop<=mk){done.add(q);q.style.background="var(--accent)";q.style.color="var(--onaccent)";hold=now+O.cl*1000;return}
-    if(Math.abs(sc.scrollTop-pos)>3)pos=sc.scrollTop;pos+=O.spd*dt;sc.scrollTop=pos;
+    if(now<hold)cd.textContent="Silence: "+Math.ceil((hold-now)/1000)+" s";
+    else{cd.textContent="";const mk=sc.scrollTop+sc.clientHeight*.35;
+      for(const q of sc.querySelectorAll(".cue"))if(!done.has(q)&&q.offsetTop<=mk){done.add(q);q.style.background="var(--accent)";q.style.color="var(--onaccent)";hold=now+O.cl*1000;break}}
+    vel+=((now<hold?0:1)-vel)*Math.min(1,dt*8);
+    if(Math.abs(sc.scrollTop-pos)>3)pos=sc.scrollTop;pos+=O.spd*dt*vel;sc.scrollTop=pos;
     if(seq&&sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2){if(!endAt)endAt=now+2500;else if(now>endAt)mr.stop()}};
   (function loop(now){an.getByteTimeDomainData(d);let m=0;for(const v of d)m=Math.max(m,Math.abs(v-128)/128);pk=Math.max(pk,m);
     const l=$("lvl");if(l){l.style.width=Math.min(100,m*160)+"%";l.style.background=m>.92?"var(--rec)":"var(--accent)"}
